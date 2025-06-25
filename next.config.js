@@ -49,13 +49,17 @@ const nextConfig = {
       },
     ];
   },
-  // Bundle analyzer
-  ...(process.env.ANALYZE === 'true' && {
+  // Bundle analyzer (only in development)
+  ...(process.env.ANALYZE === 'true' && process.env.NODE_ENV !== 'production' && {
     webpack: (config) => {
-      const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')({
-        enabled: true,
-      });
-      config.plugins.push(new BundleAnalyzerPlugin());
+      try {
+        const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')({
+          enabled: true,
+        });
+        config.plugins.push(new BundleAnalyzerPlugin());
+      } catch (error) {
+        console.warn('Bundle analyzer not available:', error.message);
+      }
       return config;
     },
   }),

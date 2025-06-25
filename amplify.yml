@@ -4,7 +4,9 @@ frontend:
     preBuild:
       commands:
         - echo "Installing dependencies..."
-        - npm ci
+        - echo "Node version: $(node --version)"
+        - echo "NPM version: $(npm --version)"
+        - npm ci --production=false --prefer-offline --no-audit
         - echo "Validating environment variables..."
         - |
           if [ -z "$JWT_SECRET" ]; then
