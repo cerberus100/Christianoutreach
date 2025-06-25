@@ -17,7 +17,8 @@
     "audit": "npm audit --audit-level moderate",
     "clean": "rm -rf .next node_modules/.cache",
     "deploy:check": "npm run lint && npm run type-check && npm run build",
-    "setup:check": "node scripts/setup-check.js"
+    "setup:check": "node scripts/setup-check.js",
+    "amplify:check": "node scripts/amplify-deploy-check.js"
   },
   "dependencies": {
     "next": "^14.0.0",

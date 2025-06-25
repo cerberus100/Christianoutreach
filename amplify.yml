@@ -1,10 +1,4 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - '# Execute Amplify CLI with the helper script'
-        - amplifyPush --simple
 frontend:
   phases:
     preBuild:
@@ -33,9 +27,12 @@ frontend:
         - echo "Generating sitemap..."
         - echo "Build artifacts ready for deployment"
   artifacts:
-    baseDirectory: .next
+    baseDirectory: .
     files:
       - '**/*'
+      - '!node_modules/**/*'
+      - '!.git/**/*'
+      - '!.next/cache/**/*'
   cache:
     paths:
       - node_modules/**/*
