@@ -1,0 +1,68 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - '# Execute Amplify CLI with the helper script'
+        - amplifyPush --simple
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing dependencies..."
+        - npm ci
+        - echo "Validating environment variables..."
+        - |
+          if [ -z "$JWT_SECRET" ]; then
+            echo "ERROR: JWT_SECRET environment variable is required"
+            exit 1
+          fi
+        - |
+          if [ -z "$AWS_REGION" ]; then
+            echo "WARNING: AWS_REGION not set, using default us-east-1"
+            export AWS_REGION=us-east-1
+          fi
+    build:
+      commands:
+        - echo "Building Next.js application..."
+        - npm run build
+        - echo "Build completed successfully"
+    postBuild:
+      commands:
+        - echo "Post-build phase..."
+        - echo "Generating sitemap..."
+        - echo "Build artifacts ready for deployment"
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'X-Frame-Options'
+          value: 'DENY'
+        - key: 'X-Content-Type-Options'
+          value: 'nosniff'
+        - key: 'Referrer-Policy'
+          value: 'strict-origin-when-cross-origin'
+        - key: 'Content-Security-Policy'
+          value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.arya.ai; frame-ancestors 'none';"
+    - pattern: '/api/**'
+      headers:
+        - key: 'Cache-Control'
+          value: 'no-store, no-cache, must-revalidate'
+    - pattern: '/admin/**'
+      headers:
+        - key: 'Cache-Control'
+          value: 'no-store, no-cache, must-revalidate'
+        - key: 'X-Robots-Tag'
+          value: 'noindex, nofollow'
+  environmentVariables:
+    - name: NEXT_TELEMETRY_DISABLED
+      value: 1
+    - name: NODE_ENV
+      value: production 

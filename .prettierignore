@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+.nyc_output/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# AWS Amplify
+amplify/\#current-cloud-backend/
+amplify/.config/
+amplify/logs/
+amplify/mock-data/
+aws-exports.js
+awsconfiguration.json
+amplifyconfiguration.json
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.min.js
+*.min.css
+
+# Documentation that should preserve formatting
+CHANGELOG.md
+LICENSE
+
+# Configuration files that have specific formatting
+*.yml
+*.yaml 
