@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import Webcam from 'react-webcam';
+import Image from 'next/image';
 import { 
   CameraIcon, 
   CheckCircleIcon, 
@@ -425,10 +426,13 @@ export default function HealthScreeningForm({
                 ) : (
                   <div className="text-center space-y-4">
                     <div className="camera-container">
-                      <img
+                      <Image
                         src={capturedImage}
                         alt="Captured selfie"
                         className="camera-preview"
+                        width={640}
+                        height={480}
+                        unoptimized={true}
                       />
                     </div>
                     

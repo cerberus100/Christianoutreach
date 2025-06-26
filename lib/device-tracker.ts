@@ -151,7 +151,7 @@ export function extractNetworkInfo(req: NextApiRequest): NetworkInfo {
 export function generateSubmissionFingerprint(
   deviceInfo: DeviceInfo,
   networkInfo: NetworkInfo,
-  formData: any
+  formData: Record<string, unknown>
 ): string {
   const fingerprintData = {
     ip: networkInfo.ipAddress,
@@ -171,7 +171,7 @@ export function generateSubmissionFingerprint(
 /**
  * Create a simple hash of an object for fingerprinting
  */
-function hashObject(obj: any): string {
+function hashObject(obj: Record<string, unknown>): string {
   const str = JSON.stringify(obj, Object.keys(obj).sort());
   let hash = 0;
   for (let i = 0; i < str.length; i++) {

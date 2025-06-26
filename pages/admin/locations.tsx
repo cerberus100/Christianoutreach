@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useForm } from 'react-hook-form';
@@ -38,17 +38,7 @@ export default function LocationsPage() {
     setValue,
   } = useForm<LocationForm>();
 
-  // Check authentication and fetch locations
-  useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-    fetchLocations(token);
-  }, [router]);
-
-  const fetchLocations = async (token: string) => {
+  const fetchLocations = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/admin/locations', {
         headers: {
@@ -75,7 +65,17 @@ export default function LocationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  // Check authentication and fetch locations
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      router.push('/admin/login');
+      return;
+    }
+    fetchLocations(token);
+  }, [router, fetchLocations]);
 
   const onSubmit = async (data: LocationForm) => {
     const token = localStorage.getItem('adminToken');

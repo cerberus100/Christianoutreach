@@ -147,7 +147,7 @@ export default async function handler(
     const submissionFingerprint = generateSubmissionFingerprint(
       deviceInfo,
       networkInfo,
-      formData
+      formData as unknown as Record<string, unknown>
     );
 
     // Detect potential fraud indicators

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -22,17 +22,7 @@ export default function SubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<HealthSubmission | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Check authentication and fetch submissions
-  useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-    fetchSubmissions(token);
-  }, [router]);
-
-  const fetchSubmissions = async (token: string) => {
+  const fetchSubmissions = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/admin/submissions', {
         headers: {
@@ -59,7 +49,17 @@ export default function SubmissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  // Check authentication and fetch submissions
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      router.push('/admin/login');
+      return;
+    }
+    fetchSubmissions(token);
+  }, [router, fetchSubmissions]);
 
   const updateFollowUpStatus = async (submissionId: string, status: string, notes?: string) => {
     const token = localStorage.getItem('adminToken');

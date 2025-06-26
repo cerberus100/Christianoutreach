@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-// import { PutCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-// import { docClient, TABLES } from '@/lib/aws-config';
 import { OutreachLocation, ApiResponse } from '@/types';
 
 // Middleware to verify JWT token

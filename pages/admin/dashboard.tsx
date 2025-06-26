@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminDashboard from '@/components/AdminDashboard';
@@ -11,18 +11,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check authentication on mount
-  useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-    setIsAuthenticated(true);
-    fetchDashboardData(token);
-  }, [router]);
-
-  const fetchDashboardData = async (token: string) => {
+  const fetchDashboardData = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/admin/dashboard', {
         headers: {
@@ -50,7 +39,18 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      router.push('/admin/login');
+      return;
+    }
+    setIsAuthenticated(true);
+    fetchDashboardData(token);
+  }, [router, fetchDashboardData]);
 
   const handleExportData = async () => {
     try {
