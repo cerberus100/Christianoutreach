@@ -63,9 +63,7 @@ export default function HealthScreeningForm({
       familyHistoryHighBP: false,
       familyHistoryDementia: false,
       nerveSymptoms: false,
-      consentScheduling: false,
-      consentTexting: false,
-      consentFollowup: false,
+      tcpaConsent: false,
     },
   });
 
@@ -106,7 +104,7 @@ export default function HealthScreeningForm({
     
     switch (currentStep) {
       case 1:
-        isValid = await trigger(['firstName', 'lastName', 'dateOfBirth']);
+        isValid = await trigger(['firstName', 'lastName', 'dateOfBirth', 'phone']);
         break;
       case 2:
         isValid = !!watch('selfie');
@@ -116,8 +114,8 @@ export default function HealthScreeningForm({
         isValid = true; // Health questions are optional
         break;
       case 4:
-        isValid = watch('consentScheduling') && watch('consentTexting') && watch('consentFollowup');
-        if (!isValid) toast.error('Please provide all consent permissions');
+        isValid = watch('tcpaConsent');
+        if (!isValid) toast.error('Please provide TCPA consent to continue');
         break;
     }
 
@@ -301,10 +299,11 @@ export default function HealthScreeningForm({
                 </div>
                 
                 <div>
-                  <label className="form-label">Phone Number (Optional)</label>
+                  <label className="form-label">Phone Number *</label>
                   <input
                     type="tel"
                     {...register('phone', {
+                      required: 'Phone number is required',
                       pattern: {
                         value: /^[\+]?[1-9][\d]{0,15}$/,
                         message: 'Please enter a valid phone number'
@@ -597,7 +596,7 @@ export default function HealthScreeningForm({
             </div>
           )}
 
-          {/* Step 4: Consent */}
+          {/* Step 4: TCPA Consent */}
           {currentStep === 4 && (
             <div className="card animate-fade-in-up">
               <div className="card-header">
@@ -615,56 +614,22 @@ export default function HealthScreeningForm({
                     <label className="flex items-start space-x-3">
                       <input
                         type="checkbox"
-                        {...register('consentScheduling', { required: true })}
+                        {...register('tcpaConsent', { required: true })}
                         className="checkbox-custom mt-1"
                       />
                       <div>
                         <span className="font-medium text-trust-900">
-                          I consent to be contacted for scheduling follow-up appointments
+                          TCPA Consent - I agree to be contacted about my health screening
                         </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          This allows us to help you schedule any necessary follow-up care or consultations.
+                        <p className="text-sm text-trust-600 mt-2">
+                          By providing my phone number and checking this box, I consent to receive calls, texts, and messages from this health ministry regarding my health screening results, follow-up appointments, health tips, and related communications. I understand that:
                         </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="medical-card card">
-                  <div className="card-body">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('consentTexting', { required: true })}
-                        className="checkbox-custom mt-1"
-                      />
-                      <div>
-                        <span className="font-medium text-trust-900">
-                          I consent to receive text messages about my health
-                        </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          We may send you important health reminders, tips, and updates via text message.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="medical-card card">
-                  <div className="card-body">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('consentFollowup', { required: true })}
-                        className="checkbox-custom mt-1"
-                      />
-                      <div>
-                        <span className="font-medium text-trust-900">
-                          I consent to follow-up communications about my health screening
-                        </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          This includes calls, emails, or messages about your results and next steps.
-                        </p>
+                        <ul className="text-sm text-trust-600 mt-2 ml-4 space-y-1">
+                          <li>• Message and data rates may apply</li>
+                          <li>• I can opt-out at any time by replying STOP</li>
+                          <li>• This consent is not required to receive services</li>
+                          <li>• Communications may include appointment reminders, health education, and follow-up care coordination</li>
+                        </ul>
                       </div>
                     </label>
                   </div>

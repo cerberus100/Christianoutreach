@@ -25,15 +25,13 @@ interface FormSubmissionData {
   lastName: string;
   dateOfBirth: string;
   churchId: string;
-  phone?: string;
+  phone: string;
   email?: string;
   familyHistoryDiabetes: boolean;
   familyHistoryHighBP: boolean;
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
-  consentScheduling: boolean;
-  consentTexting: boolean;
-  consentFollowup: boolean;
+  tcpaConsent: boolean;
 }
 
 export default async function handler(
@@ -76,30 +74,28 @@ export default async function handler(
       lastName: Array.isArray(fields.lastName) ? fields.lastName[0] : fields.lastName || '',
       dateOfBirth: Array.isArray(fields.dateOfBirth) ? fields.dateOfBirth[0] : fields.dateOfBirth || '',
       churchId: Array.isArray(fields.churchId) ? fields.churchId[0] : fields.churchId || '',
-      phone: Array.isArray(fields.phone) ? fields.phone[0] : fields.phone,
+      phone: Array.isArray(fields.phone) ? fields.phone[0] : fields.phone || '',
       email: Array.isArray(fields.email) ? fields.email[0] : fields.email,
       familyHistoryDiabetes: (Array.isArray(fields.familyHistoryDiabetes) ? fields.familyHistoryDiabetes[0] : fields.familyHistoryDiabetes) === 'true',
       familyHistoryHighBP: (Array.isArray(fields.familyHistoryHighBP) ? fields.familyHistoryHighBP[0] : fields.familyHistoryHighBP) === 'true',
       familyHistoryDementia: (Array.isArray(fields.familyHistoryDementia) ? fields.familyHistoryDementia[0] : fields.familyHistoryDementia) === 'true',
       nerveSymptoms: (Array.isArray(fields.nerveSymptoms) ? fields.nerveSymptoms[0] : fields.nerveSymptoms) === 'true',
-      consentScheduling: (Array.isArray(fields.consentScheduling) ? fields.consentScheduling[0] : fields.consentScheduling) === 'true',
-      consentTexting: (Array.isArray(fields.consentTexting) ? fields.consentTexting[0] : fields.consentTexting) === 'true',
-      consentFollowup: (Array.isArray(fields.consentFollowup) ? fields.consentFollowup[0] : fields.consentFollowup) === 'true',
+      tcpaConsent: (Array.isArray(fields.tcpaConsent) ? fields.tcpaConsent[0] : fields.tcpaConsent) === 'true',
     };
 
     // Validate required fields
-    if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.churchId) {
+    if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.churchId || !formData.phone) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields',
+        error: 'Missing required fields (firstName, lastName, dateOfBirth, churchId, phone)',
       });
     }
 
-    // Validate consent
-    if (!formData.consentScheduling || !formData.consentTexting || !formData.consentFollowup) {
+    // Validate TCPA consent
+    if (!formData.tcpaConsent) {
       return res.status(400).json({
         success: false,
-        error: 'All consent permissions are required',
+        error: 'TCPA consent is required',
       });
     }
 
@@ -193,12 +189,10 @@ export default async function handler(
       familyHistoryDementia: formData.familyHistoryDementia,
       nerveSymptoms: formData.nerveSymptoms,
       
-      // Consent
-      consentScheduling: formData.consentScheduling,
-      consentTexting: formData.consentTexting,
-      consentFollowup: formData.consentFollowup,
+      // TCPA Consent
+      tcpaConsent: formData.tcpaConsent,
       
-      // Contact info
+      // Contact info (phone now required)
       phone: formData.phone,
       email: formData.email,
       
