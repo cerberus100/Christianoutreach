@@ -4,8 +4,8 @@ frontend:
     preBuild:
       commands:
         - echo "Installing dependencies..."
-        - echo "Node version: $(node --version)"
-        - echo "NPM version: $(npm --version)"
+        - 'echo "Node version: $(node --version)"'
+        - 'echo "NPM version: $(npm --version)"'
         - npm ci --production=false --prefer-offline --no-audit
         - echo "Validating environment variables..."
         - |
@@ -64,4 +64,4 @@ frontend:
     - name: NEXT_TELEMETRY_DISABLED
       value: 1
     - name: NODE_ENV
-      value: production 
+      value: production
