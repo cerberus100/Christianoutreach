@@ -146,7 +146,7 @@ async function handlePost(
       conversionRate: 0,
     };
 
-    // TODO: Save to DynamoDB
+    // TODO: Save to DynamoDB when database is configured
     // await docClient.send(new PutCommand({
     //   TableName: TABLES.CHURCHES,
     //   Item: newLocation,
