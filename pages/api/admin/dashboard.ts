@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-// import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import jwt from 'jsonwebtoken';
-// import { docClient, TABLES } from '@/lib/aws-config';
+import { docClient, TABLES } from '@/lib/aws-config';
 import { DashboardStats, HealthSubmission, ApiResponse } from '@/types';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -45,10 +45,10 @@ export default async function handler(
     // For now, we'll return mock data that represents the structure
 
     // TODO: Replace with actual DynamoDB queries
-    // const result = await docClient.send(new ScanCommand({
-    //   TableName: TABLES.SUBMISSIONS,
-    // }));
-    // const submissions = result.Items as HealthSubmission[];
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.SUBMISSIONS,
+    }));
+    const submissions = result.Items as HealthSubmission[];
 
     // Generate mock data for demonstration
     const now = new Date();
