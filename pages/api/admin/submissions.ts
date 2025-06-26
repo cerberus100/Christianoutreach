@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-// import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import jwt from 'jsonwebtoken';
-// import { docClient, TABLES } from '@/lib/aws-config';
+import { docClient, TABLES } from '@/lib/aws-config';
 import { HealthSubmission, ApiResponse } from '@/types';
 
 // Middleware to verify JWT token
