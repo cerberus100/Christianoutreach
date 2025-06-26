@@ -21,11 +21,11 @@ frontend:
             echo "WARNING: AWS_REGION not set, using default us-east-1"
             export AWS_REGION=us-east-1
           fi
-        - echo "Running TypeScript type check..."
-        - npm run type-check
+        - echo "Dependencies installed successfully"
     build:
       commands:
         - echo "Building Next.js application..."
+        - echo "Next.js will automatically run TypeScript checking during build"
         - npm run build
         - echo "Build completed successfully"
     postBuild:
