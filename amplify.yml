@@ -6,10 +6,13 @@ frontend:
         - echo "Setting up build environment..."
         - 'echo "Node version: $(node --version)"'
         - 'echo "NPM version: $(npm --version)"'
-        - echo "Cleaning npm cache..."
+        - echo "Clearing npm cache and any existing cache..."
         - npm cache clean --force
-        - echo "Installing dependencies with npm ci..."
-        - npm ci --prefer-offline --no-audit --no-fund --silent
+        - rm -rf node_modules package-lock.json
+        - echo "Installing dependencies fresh..."
+        - npm install
+        - echo "Verifying TypeScript installation..."
+        - npm list typescript @types/react @types/node || echo "Some TypeScript packages missing"
         - echo "Validating environment variables..."
         - |
           if [ -z "$JWT_SECRET" ]; then
@@ -31,8 +34,6 @@ frontend:
     postBuild:
       commands:
         - echo "Post-build optimizations..."
-        - echo "Removing development dependencies from node_modules..."
-        - npm prune --production
         - echo "Build artifacts ready for deployment"
   artifacts:
     baseDirectory: .next
