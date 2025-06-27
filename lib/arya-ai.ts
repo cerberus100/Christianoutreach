@@ -39,7 +39,7 @@ export class AryaAIService {
       const requestBody = {
         req_id: reqId,
         doc_base64: base64Image,
-        doc_type: 'selfie_image'
+        doc_type: 'image'
       };
 
       const response = await axios.post(
