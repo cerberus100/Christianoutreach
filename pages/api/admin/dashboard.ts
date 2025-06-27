@@ -83,7 +83,7 @@ export default async function handler(
         id: `submission-${i}`,
         firstName: `Person${i}`,
         lastName: `Test${i}`,
-        dateOfBirth: '1990-01-01',
+        dateOfBirth: '01/01/1990',
         selfieUrl: '',
         churchId: ['church-a', 'church-b', 'church-c', 'church-d'][Math.floor(Math.random() * 4)],
         submissionDate: submissionDate.toISOString(),

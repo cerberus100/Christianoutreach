@@ -278,20 +278,61 @@ export default function HealthScreeningForm({
                 <div>
                   <label className="form-label">Date of Birth *</label>
                   <input
-                    type="date"
+                    type="text"
                     {...register('dateOfBirth', { 
                       required: 'Date of birth is required',
+                      pattern: {
+                        value: /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/,
+                        message: 'Please enter date in MM/DD/YYYY format (e.g., 02/04/1992)'
+                      },
                       validate: (value) => {
+                        // Parse MM/DD/YYYY format
+                        const parts = value.split('/');
+                        if (parts.length !== 3) return 'Please enter date in MM/DD/YYYY format';
+                        
+                        const month = parseInt(parts[0], 10);
+                        const day = parseInt(parts[1], 10);
+                        const year = parseInt(parts[2], 10);
+                        
+                        // Validate ranges
+                        if (month < 1 || month > 12) return 'Please enter a valid month (01-12)';
+                        if (day < 1 || day > 31) return 'Please enter a valid day (01-31)';
+                        if (year < 1900 || year > new Date().getFullYear()) return 'Please enter a valid year';
+                        
+                        // Check if date is valid
+                        const date = new Date(year, month - 1, day);
+                        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+                          return 'Please enter a valid date';
+                        }
+                        
+                        // Age validation
                         const today = new Date();
-                        const birthDate = new Date(value);
-                        const age = today.getFullYear() - birthDate.getFullYear();
+                        const birthDate = new Date(year, month - 1, day);
+                        let age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                          age--;
+                        }
+                        
                         if (age < 18) return 'Must be 18 or older';
                         if (age > 120) return 'Please enter a valid date';
                         return true;
                       }
                     })}
                     className={`form-input ${errors.dateOfBirth ? 'form-input-error' : ''}`}
-                    max={new Date(Date.now() - 18 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                    placeholder="MM/DD/YYYY (e.g., 02/04/1992)"
+                    maxLength={10}
+                    onInput={(e) => {
+                      // Auto-format as user types
+                      let value = e.currentTarget.value.replace(/\D/g, '');
+                      if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2);
+                      }
+                      if (value.length >= 5) {
+                        value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                      }
+                      e.currentTarget.value = value;
+                    }}
                   />
                   {errors.dateOfBirth && (
                     <p className="form-error">{errors.dateOfBirth.message}</p>
