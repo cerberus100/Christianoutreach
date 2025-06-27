@@ -28,7 +28,7 @@ export class AryaAIService {
     this.baseUrl = 'https://ping.arya.ai/api/v1';
   }
 
-  async analyzeSelfie(imageBuffer: Buffer, mimeType: string): Promise<AryaAIResponse> {
+  async analyzeSelfie(imageBuffer: Buffer, _mimeType: string): Promise<AryaAIResponse> {
     try {
       // Convert buffer to base64
       const base64Image = imageBuffer.toString('base64');
