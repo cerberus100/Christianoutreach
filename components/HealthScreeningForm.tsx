@@ -67,18 +67,25 @@ export default function HealthScreeningForm({
     },
   });
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       setCapturedImage(imageSrc);
       setShowCamera(false);
-      // Convert data URL to File object
-      fetch(imageSrc)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
-          setValue('selfie', file);
-        });
+      
+      try {
+        // Convert data URL to File object
+        const response = await fetch(imageSrc);
+        const blob = await response.blob();
+        const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+        setValue('selfie', file);
+        // Trigger form validation to clear any existing errors
+        trigger('selfie');
+      } catch (error) {
+        console.error('Error processing captured photo:', error);
+        toast.error('Error processing photo. Please try again.');
+        setCapturedImage(null);
+      }
     }
   }, [setValue]);
 
@@ -92,8 +99,20 @@ export default function HealthScreeningForm({
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        setCapturedImage(e.target?.result as string);
-        setValue('selfie', file);
+        try {
+          setCapturedImage(e.target?.result as string);
+          setValue('selfie', file);
+          // Trigger form validation to clear any existing errors
+          trigger('selfie');
+        } catch (error) {
+          console.error('Error processing uploaded photo:', error);
+          toast.error('Error processing photo. Please try again.');
+          setCapturedImage(null);
+        }
+      };
+      reader.onerror = () => {
+        toast.error('Error reading photo file. Please try again.');
+        setCapturedImage(null);
       };
       reader.readAsDataURL(file);
     }
@@ -107,7 +126,8 @@ export default function HealthScreeningForm({
         isValid = await trigger(['firstName', 'lastName', 'dateOfBirth', 'phone']);
         break;
       case 2:
-        isValid = !!watch('selfie');
+        // Check both the form field AND the captured image state to handle async photo processing
+        isValid = !!watch('selfie') || !!capturedImage;
         if (!isValid) toast.error('Please take a photo to continue');
         break;
       case 3:
@@ -134,6 +154,13 @@ export default function HealthScreeningForm({
     setIsSubmitting(true);
     
     try {
+      // Ensure photo is captured before submitting
+      if (!data.selfie && !capturedImage) {
+        toast.error('Please take a photo before submitting');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const formData = new FormData();
       
       // Add all form fields
