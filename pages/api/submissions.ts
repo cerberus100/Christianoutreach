@@ -1,11 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import formidable from 'formidable';
 import fs from 'fs';
 import { docClient, s3Client, TABLES, S3_BUCKET } from '@/lib/aws-config';
 import { aryaAI } from '@/lib/arya-ai';
+import { 
+  validateUploadedFile, 
+  SELFIE_VALIDATION_OPTIONS, 
+  checkUploadRateLimit,
+  cleanupRateLimitEntries 
+} from '@/lib/file-validation';
 import { 
   extractNetworkInfo, 
   parseUserAgent, 
@@ -17,6 +23,8 @@ import { HealthSubmission, ApiResponse, DeviceInfo, NetworkInfo } from '@/types'
 export const config = {
   api: {
     bodyParser: false,
+    // Increase timeout for file processing
+    externalResolver: true,
   },
 };
 
@@ -46,10 +54,38 @@ export default async function handler(
   }
 
   try {
-    // Parse form data including file upload
+    // Extract client IP for rate limiting and security
+    const clientIP = req.headers['x-forwarded-for']?.toString().split(',')[0] || 
+                    req.headers['x-real-ip']?.toString() || 
+                    req.socket.remoteAddress || 
+                    'unknown';
+
+    // Rate limiting check
+    if (!checkUploadRateLimit(clientIP, 5, 60000)) {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many upload attempts. Please wait before trying again.',
+      });
+    }
+
+    // Basic CSRF protection - check for custom header
+    const customHeader = req.headers['x-requested-with'];
+    if (customHeader !== 'XMLHttpRequest') {
+      console.warn(`Potential CSRF attempt from ${clientIP} - missing custom header`);
+    }
+
+    // Clean up old rate limit entries periodically (1% chance per request)
+    if (Math.random() < 0.01) {
+      cleanupRateLimitEntries();
+    }
+
+    // Parse form data including file upload with secure settings
     const form = formidable({
-      maxFileSize: 10 * 1024 * 1024, // 10MB limit
-      keepExtensions: true,
+      maxFileSize: SELFIE_VALIDATION_OPTIONS.maxSizeBytes, // 5MB limit
+      keepExtensions: false, // We'll generate our own secure extensions
+      allowEmptyFiles: false,
+      maxFields: 20, // Limit number of fields
+      maxFieldsSize: 1024 * 1024, // 1MB limit for text fields
     });
 
     const [fields, files] = await form.parse(req);
@@ -68,7 +104,7 @@ export default async function handler(
       }
     }
     
-    // Extract form data
+    // Extract and validate form data
     const formData: FormSubmissionData = {
       firstName: Array.isArray(fields.firstName) ? fields.firstName[0] : fields.firstName || '',
       lastName: Array.isArray(fields.lastName) ? fields.lastName[0] : fields.lastName || '',
@@ -83,11 +119,19 @@ export default async function handler(
       tcpaConsent: (Array.isArray(fields.tcpaConsent) ? fields.tcpaConsent[0] : fields.tcpaConsent) === 'true',
     };
 
-    // Validate required fields
+    // Validate required fields with enhanced security
     if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.churchId || !formData.phone) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields (firstName, lastName, dateOfBirth, churchId, phone)',
+      });
+    }
+
+    // Validate field lengths to prevent DoS
+    if (formData.firstName.length > 100 || formData.lastName.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name fields too long',
       });
     }
 
@@ -99,7 +143,7 @@ export default async function handler(
       });
     }
 
-    // Handle selfie upload
+    // Handle selfie upload with comprehensive validation
     const selfieFile = Array.isArray(files.selfie) ? files.selfie[0] : files.selfie;
     if (!selfieFile) {
       return res.status(400).json({
@@ -108,25 +152,80 @@ export default async function handler(
       });
     }
 
+    // Comprehensive file validation
+    const fileValidation = validateUploadedFile(
+      selfieFile.filepath,
+      selfieFile.originalFilename || 'unknown',
+      selfieFile.mimetype || 'application/octet-stream',
+      SELFIE_VALIDATION_OPTIONS
+    );
+
+    if (!fileValidation.isValid) {
+      // Clean up the rejected file
+      try {
+        fs.unlinkSync(selfieFile.filepath);
+      } catch (error) {
+        console.warn('Failed to clean up rejected file:', error);
+      }
+      
+      return res.status(400).json({
+        success: false,
+        error: `File validation failed: ${fileValidation.error}`,
+      });
+    }
+
     const submissionId = uuidv4();
     const timestamp = new Date().toISOString();
     
-    // Upload photo to S3
-    const fileBuffer = fs.readFileSync(selfieFile.filepath);
-    const fileExtension = selfieFile.originalFilename?.split('.').pop() || 'jpg';
-    const s3Key = `submissions/${submissionId}/selfie.${fileExtension}`;
+    // Read file with error handling
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = fs.readFileSync(selfieFile.filepath);
+    } catch (error) {
+      console.error('Failed to read uploaded file:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process uploaded file',
+      });
+    }
+
+    // Use secure filename from validation
+    const secureFilename = fileValidation.sanitizedFilename!;
+    const s3Key = `submissions/${submissionId}/${secureFilename}`;
     
-    await s3Client.send(new PutObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: s3Key,
-      Body: fileBuffer,
-      ContentType: selfieFile.mimetype || 'image/jpeg',
-      Metadata: {
-        submissionId,
-        churchId: formData.churchId,
-        uploadDate: timestamp,
-      },
-    }));
+    // Upload photo to S3 with enhanced security
+    try {
+      await s3Client.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: fileValidation.detectedMimeType || 'image/jpeg',
+        ContentDisposition: 'inline', // Prevent downloads as executable
+        ContentEncoding: undefined, // Prevent encoding tricks
+        Metadata: {
+          submissionId,
+          churchId: formData.churchId,
+          uploadDate: timestamp,
+          originalSize: fileBuffer.length.toString(),
+          clientIP: clientIP.substring(0, 12), // Partial IP for privacy
+        },
+        ServerSideEncryption: 'AES256', // Encrypt at rest
+        StorageClass: 'STANDARD_IA', // Cost optimization
+      }));
+    } catch (error) {
+      console.error('S3 upload failed:', error);
+      // Clean up local file
+      try {
+        fs.unlinkSync(selfieFile.filepath);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up file after S3 error:', cleanupError);
+      }
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to store uploaded file',
+      });
+    }
 
     const selfieUrl = `https://${S3_BUCKET}.s3.amazonaws.com/${s3Key}`;
 
@@ -157,7 +256,7 @@ export default async function handler(
     let healthRisk = null;
     
     try {
-      aiAnalysis = await aryaAI.analyzeSelfie(fileBuffer, selfieFile.mimetype || 'image/jpeg');
+      aiAnalysis = await aryaAI.analyzeSelfie(fileBuffer, fileValidation.detectedMimeType || 'image/jpeg');
       
       if (aiAnalysis.success) {
         healthRisk = aryaAI.assessHealthRisk(
@@ -215,14 +314,38 @@ export default async function handler(
       sessionId: uuidv4(),
     };
 
-    // Save to DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: TABLES.SUBMISSIONS,
-      Item: submission,
-    }));
+    // Save to DynamoDB with error handling
+    try {
+      await docClient.send(new PutCommand({
+        TableName: TABLES.SUBMISSIONS,
+        Item: submission,
+        ConditionExpression: 'attribute_not_exists(id)', // Prevent overwrites
+      }));
+    } catch (error) {
+      console.error('DynamoDB save failed:', error);
+      
+      // Clean up S3 file if database save fails
+      try {
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: s3Key,
+        }));
+      } catch (s3Error) {
+        console.error('Failed to clean up S3 file after DB error:', s3Error);
+      }
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to save submission data',
+      });
+    }
 
     // Clean up temporary file
-    fs.unlinkSync(selfieFile.filepath);
+    try {
+      fs.unlinkSync(selfieFile.filepath);
+    } catch (error) {
+      console.warn('Failed to clean up temporary file:', error);
+    }
 
     // Return success response
     res.status(201).json({

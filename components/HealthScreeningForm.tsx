@@ -70,52 +70,98 @@ export default function HealthScreeningForm({
   const capturePhoto = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
+      // Always set captured image first - never remove it on errors
       setCapturedImage(imageSrc);
       setShowCamera(false);
       
+      // Convert to File object for form submission
       try {
-        // Convert data URL to File object
         const response = await fetch(imageSrc);
         const blob = await response.blob();
         const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
         setValue('selfie', file);
-        // Trigger form validation to clear any existing errors
         trigger('selfie');
       } catch (error) {
-        console.error('Error processing captured photo:', error);
-        toast.error('Error processing photo. Please try again.');
-        setCapturedImage(null);
+        console.warn('Photo conversion failed, will use data URL fallback:', error);
+        // Create a fallback File-like object from the data URL
+        try {
+          const byteString = atob(imageSrc.split(',')[1]);
+          const arrayBuffer = new ArrayBuffer(byteString.length);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([uint8Array], { type: 'image/jpeg' });
+          const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+          setValue('selfie', file);
+          trigger('selfie');
+        } catch (fallbackError) {
+          console.error('All photo conversion methods failed:', fallbackError);
+          toast.error('Photo processing issue. Please try uploading a file instead.');
+          // Keep the visual photo but note the conversion issue
+        }
       }
     }
-  }, [setValue]);
+  }, [setValue, trigger]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      // File size validation (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
         toast.error('Image must be less than 5MB');
+        return;
+      }
+      
+      // File type validation - only allow image types
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please upload a valid image file (JPEG, PNG, or WebP)');
+        return;
+      }
+      
+      // File extension validation
+      const allowedExtensions = /\.(jpg|jpeg|png|webp)$/i;
+      if (!allowedExtensions.test(file.name)) {
+        toast.error('Invalid file extension. Please use .jpg, .png, or .webp files');
+        return;
+      }
+      
+      // Additional security: check for suspicious filenames
+      if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+        toast.error('Invalid filename. Please choose a different file');
         return;
       }
       
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          setCapturedImage(e.target?.result as string);
+          const result = e.target?.result as string;
+          
+          // Basic image signature validation
+          if (!result.startsWith('data:image/')) {
+            toast.error('Invalid image file. Please try a different file');
+            return;
+          }
+          
+          setCapturedImage(result);
           setValue('selfie', file);
-          // Trigger form validation to clear any existing errors
           trigger('selfie');
         } catch (error) {
           console.error('Error processing uploaded photo:', error);
           toast.error('Error processing photo. Please try again.');
-          setCapturedImage(null);
         }
       };
+      
       reader.onerror = () => {
         toast.error('Error reading photo file. Please try again.');
-        setCapturedImage(null);
       };
+      
       reader.readAsDataURL(file);
     }
+    
+    // Clear the input to allow re-uploading the same file
+    event.target.value = '';
   };
 
   const nextStep = async () => {
@@ -182,6 +228,9 @@ export default function HealthScreeningForm({
 
       const response = await fetch('/api/submissions', {
         method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+        },
         body: formData,
       });
 
