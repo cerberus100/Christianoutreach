@@ -5,10 +5,16 @@ import { S3Client } from '@aws-sdk/client-s3';
 // AWS Configuration
 const awsConfig = {
   region: process.env.APP_AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
+  // Only use explicit credentials for local development
+  // In production (AWS Lambda), let SDK use IAM role credentials automatically
+  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY 
+    ? {
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        },
+      }
+    : {}),
 };
 
 // DynamoDB Client
@@ -26,4 +32,4 @@ export const TABLES = {
 };
 
 // S3 Bucket
-export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || 'health-screening-photos'; 
+export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || 'health-screening-photos-2024'; 
