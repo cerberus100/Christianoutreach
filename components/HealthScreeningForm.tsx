@@ -235,8 +235,8 @@ export default function HealthScreeningForm({
       formData.append('clientDeviceInfo', JSON.stringify(clientDeviceInfo));
       console.log('Added client device info');
 
-      console.log('Sending request to /api/submissions-local...');
-      const response = await fetch('/api/submissions-local', {
+      console.log('Sending request to /api/submissions...');
+      const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: {
           'X-Requested-With': 'XMLHttpRequest', // CSRF protection
