@@ -197,22 +197,29 @@ export default function HealthScreeningForm({
   };
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submission started with data:', data);
     setIsSubmitting(true);
     
     try {
       // Ensure photo is captured before submitting
       if (!data.selfie && !capturedImage) {
+        console.log('No photo found - blocking submission');
         toast.error('Please take a photo before submitting');
         setIsSubmitting(false);
         return;
       }
       
+      console.log('Photo check passed - creating FormData');
+      console.log('Photo file:', data.selfie);
+      
       const formData = new FormData();
       
       // Add all form fields
       Object.entries(data).forEach(([key, value]) => {
+        console.log(`Adding field ${key}:`, value);
         if (key === 'selfie' && value instanceof File) {
           formData.append(key, value);
+          console.log(`Added photo file: ${value.name}, size: ${value.size}`);
         } else if (typeof value === 'boolean') {
           formData.append(key, value.toString());
         } else if (value !== null && value !== undefined) {
@@ -221,11 +228,14 @@ export default function HealthScreeningForm({
       });
       
       formData.append('churchId', churchId);
+      console.log('Added churchId:', churchId);
       
       // Add client-side device information
       const clientDeviceInfo = collectClientDeviceInfo();
       formData.append('clientDeviceInfo', JSON.stringify(clientDeviceInfo));
+      console.log('Added client device info');
 
+      console.log('Sending request to /api/submissions...');
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: {
@@ -234,16 +244,27 @@ export default function HealthScreeningForm({
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       const result = await response.json();
+      console.log('Response data:', result);
 
       if (result.success) {
+        console.log('Submission successful!');
         toast.success('Your health screening has been submitted successfully!');
         onSuccess?.(result.data.id);
       } else {
+        console.error('Submission failed with error:', result.error);
         throw new Error(result.error || 'Submission failed');
       }
     } catch (error) {
       console.error('Submission error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
       toast.error('Failed to submit form. Please try again.');
     } finally {
       setIsSubmitting(false);
