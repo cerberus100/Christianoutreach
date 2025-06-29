@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PutCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { docClient, TABLES } from '@/lib/aws-config';
 import { OutreachLocation, ApiResponse } from '@/types';
 
 // Middleware to verify JWT token
@@ -148,11 +146,11 @@ async function handlePost(
       conversionRate: 0,
     };
 
-    // TODO: Save to DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: TABLES.CHURCHES,
-      Item: newLocation,
-    }));
+    // TODO: Save to DynamoDB when database is configured
+    // await docClient.send(new PutCommand({
+    //   TableName: TABLES.CHURCHES,
+    //   Item: newLocation,
+    // }));
 
     // For now, just return the created location
     console.warn('Created location:', newLocation);

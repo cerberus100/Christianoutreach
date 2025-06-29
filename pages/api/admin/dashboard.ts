@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import jwt from 'jsonwebtoken';
-import { docClient, TABLES } from '@/lib/aws-config';
 import { DashboardStats, HealthSubmission, ApiResponse } from '@/types';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -44,11 +42,7 @@ export default async function handler(
     // In a real application, this would query DynamoDB
     // For now, we'll return mock data that represents the structure
 
-    // TODO: Replace with actual DynamoDB queries
-    const result = await docClient.send(new ScanCommand({
-      TableName: TABLES.SUBMISSIONS,
-    }));
-    const submissions = result.Items as HealthSubmission[];
+    // TODO: Replace with actual DynamoDB queries when database is configured
 
     // Generate mock data for demonstration
     const now = new Date();
@@ -89,7 +83,7 @@ export default async function handler(
         id: `submission-${i}`,
         firstName: `Person${i}`,
         lastName: `Test${i}`,
-        dateOfBirth: '1990-01-01',
+        dateOfBirth: '01/01/1990',
         selfieUrl: '',
         churchId: ['church-a', 'church-b', 'church-c', 'church-d'][Math.floor(Math.random() * 4)],
         submissionDate: submissionDate.toISOString(),
@@ -97,9 +91,8 @@ export default async function handler(
         familyHistoryHighBP: Math.random() > 0.5,
         familyHistoryDementia: Math.random() > 0.8,
         nerveSymptoms: Math.random() > 0.7,
-        consentScheduling: true,
-        consentTexting: true,
-        consentFollowup: true,
+        tcpaConsent: true,
+        phone: `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
         estimatedBMI: bmi,
         bmiCategory: bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal weight' : bmi < 30 ? 'Overweight' : 'Obese',
         estimatedAge: Math.floor(Math.random() * 40) + 25,

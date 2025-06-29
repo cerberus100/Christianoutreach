@@ -53,10 +53,8 @@ export interface HealthSubmission {
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
   
-  // Consent
-  consentScheduling: boolean;
-  consentTexting: boolean;
-  consentFollowup: boolean;
+  // TCPA Consent
+  tcpaConsent: boolean;
   
   // AI Analysis results
   estimatedBMI?: number;
@@ -67,8 +65,8 @@ export interface HealthSubmission {
   healthRiskScore?: number;
   recommendations?: string[];
   
-  // Contact information (optional)
-  phone?: string;
+  // Contact information (required phone, optional email)
+  phone: string;
   email?: string;
   
   // Follow-up tracking
@@ -194,7 +192,7 @@ export interface FormData {
   firstName: string;
   lastName: string;
   dateOfBirth: string;
-  phone?: string;
+  phone: string;
   email?: string;
   selfie: File | null;
   
@@ -204,10 +202,8 @@ export interface FormData {
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
   
-  // Consent
-  consentScheduling: boolean;
-  consentTexting: boolean;
-  consentFollowup: boolean;
+  // TCPA Consent
+  tcpaConsent: boolean;
 }
 
 export interface ApiResponse<T = unknown> {

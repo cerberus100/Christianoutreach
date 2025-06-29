@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import Webcam from 'react-webcam';
+import Image from 'next/image';
 import { 
   CameraIcon, 
   CheckCircleIcon, 
@@ -62,42 +63,105 @@ export default function HealthScreeningForm({
       familyHistoryHighBP: false,
       familyHistoryDementia: false,
       nerveSymptoms: false,
-      consentScheduling: false,
-      consentTexting: false,
-      consentFollowup: false,
+      tcpaConsent: false,
     },
   });
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
+      // Always set captured image first - never remove it on errors
       setCapturedImage(imageSrc);
       setShowCamera(false);
-      // Convert data URL to File object
-      fetch(imageSrc)
-        .then(res => res.blob())
-        .then(blob => {
+      
+      // Convert to File object for form submission
+      try {
+        const response = await fetch(imageSrc);
+        const blob = await response.blob();
+        const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+        setValue('selfie', file);
+        trigger('selfie');
+      } catch (error) {
+        console.warn('Photo conversion failed, will use data URL fallback:', error);
+        // Create a fallback File-like object from the data URL
+        try {
+          const byteString = atob(imageSrc.split(',')[1]);
+          const arrayBuffer = new ArrayBuffer(byteString.length);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([uint8Array], { type: 'image/jpeg' });
           const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
           setValue('selfie', file);
-        });
+          trigger('selfie');
+        } catch (fallbackError) {
+          console.error('All photo conversion methods failed:', fallbackError);
+          toast.error('Photo processing issue. Please try uploading a file instead.');
+          // Keep the visual photo but note the conversion issue
+        }
+      }
     }
-  }, [setValue]);
+  }, [setValue, trigger]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      // File size validation (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
         toast.error('Image must be less than 5MB');
+        return;
+      }
+      
+      // File type validation - only allow image types
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please upload a valid image file (JPEG, PNG, or WebP)');
+        return;
+      }
+      
+      // File extension validation
+      const allowedExtensions = /\.(jpg|jpeg|png|webp)$/i;
+      if (!allowedExtensions.test(file.name)) {
+        toast.error('Invalid file extension. Please use .jpg, .png, or .webp files');
+        return;
+      }
+      
+      // Additional security: check for suspicious filenames
+      if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+        toast.error('Invalid filename. Please choose a different file');
         return;
       }
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        setCapturedImage(e.target?.result as string);
-        setValue('selfie', file);
+        try {
+          const result = e.target?.result as string;
+          
+          // Basic image signature validation
+          if (!result.startsWith('data:image/')) {
+            toast.error('Invalid image file. Please try a different file');
+            return;
+          }
+          
+          setCapturedImage(result);
+          setValue('selfie', file);
+          trigger('selfie');
+        } catch (error) {
+          console.error('Error processing uploaded photo:', error);
+          toast.error('Error processing photo. Please try again.');
+        }
       };
+      
+      reader.onerror = () => {
+        toast.error('Error reading photo file. Please try again.');
+      };
+      
       reader.readAsDataURL(file);
     }
+    
+    // Clear the input to allow re-uploading the same file
+    event.target.value = '';
   };
 
   const nextStep = async () => {
@@ -105,18 +169,19 @@ export default function HealthScreeningForm({
     
     switch (currentStep) {
       case 1:
-        isValid = await trigger(['firstName', 'lastName', 'dateOfBirth']);
+        isValid = await trigger(['firstName', 'lastName', 'dateOfBirth', 'phone']);
         break;
       case 2:
-        isValid = !!watch('selfie');
+        // Check both the form field AND the captured image state to handle async photo processing
+        isValid = !!watch('selfie') || !!capturedImage;
         if (!isValid) toast.error('Please take a photo to continue');
         break;
       case 3:
         isValid = true; // Health questions are optional
         break;
       case 4:
-        isValid = watch('consentScheduling') && watch('consentTexting') && watch('consentFollowup');
-        if (!isValid) toast.error('Please provide all consent permissions');
+        isValid = watch('tcpaConsent');
+        if (!isValid) toast.error('Please provide TCPA consent to continue');
         break;
     }
 
@@ -132,15 +197,29 @@ export default function HealthScreeningForm({
   };
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submission started with data:', data);
     setIsSubmitting(true);
     
     try {
+      // Ensure photo is captured before submitting
+      if (!data.selfie && !capturedImage) {
+        console.log('No photo found - blocking submission');
+        toast.error('Please take a photo before submitting');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log('Photo check passed - creating FormData');
+      console.log('Photo file:', data.selfie);
+      
       const formData = new FormData();
       
       // Add all form fields
       Object.entries(data).forEach(([key, value]) => {
+        console.log(`Adding field ${key}:`, value);
         if (key === 'selfie' && value instanceof File) {
           formData.append(key, value);
+          console.log(`Added photo file: ${value.name}, size: ${value.size}`);
         } else if (typeof value === 'boolean') {
           formData.append(key, value.toString());
         } else if (value !== null && value !== undefined) {
@@ -149,26 +228,43 @@ export default function HealthScreeningForm({
       });
       
       formData.append('churchId', churchId);
+      console.log('Added churchId:', churchId);
       
       // Add client-side device information
       const clientDeviceInfo = collectClientDeviceInfo();
       formData.append('clientDeviceInfo', JSON.stringify(clientDeviceInfo));
+      console.log('Added client device info');
 
+      console.log('Sending request to /api/submissions...');
       const response = await fetch('/api/submissions', {
         method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+        },
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       const result = await response.json();
+      console.log('Response data:', result);
 
       if (result.success) {
+        console.log('Submission successful!');
         toast.success('Your health screening has been submitted successfully!');
         onSuccess?.(result.data.id);
       } else {
+        console.error('Submission failed with error:', result.error);
         throw new Error(result.error || 'Submission failed');
       }
     } catch (error) {
       console.error('Submission error:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
       toast.error('Failed to submit form. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -279,20 +375,61 @@ export default function HealthScreeningForm({
                 <div>
                   <label className="form-label">Date of Birth *</label>
                   <input
-                    type="date"
+                    type="text"
                     {...register('dateOfBirth', { 
                       required: 'Date of birth is required',
+                      pattern: {
+                        value: /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/,
+                        message: 'Please enter date in MM/DD/YYYY format (e.g., 02/04/1992)'
+                      },
                       validate: (value) => {
+                        // Parse MM/DD/YYYY format
+                        const parts = value.split('/');
+                        if (parts.length !== 3) return 'Please enter date in MM/DD/YYYY format';
+                        
+                        const month = parseInt(parts[0], 10);
+                        const day = parseInt(parts[1], 10);
+                        const year = parseInt(parts[2], 10);
+                        
+                        // Validate ranges
+                        if (month < 1 || month > 12) return 'Please enter a valid month (01-12)';
+                        if (day < 1 || day > 31) return 'Please enter a valid day (01-31)';
+                        if (year < 1900 || year > new Date().getFullYear()) return 'Please enter a valid year';
+                        
+                        // Check if date is valid
+                        const date = new Date(year, month - 1, day);
+                        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+                          return 'Please enter a valid date';
+                        }
+                        
+                        // Age validation
                         const today = new Date();
-                        const birthDate = new Date(value);
-                        const age = today.getFullYear() - birthDate.getFullYear();
+                        const birthDate = new Date(year, month - 1, day);
+                        let age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                          age--;
+                        }
+                        
                         if (age < 18) return 'Must be 18 or older';
                         if (age > 120) return 'Please enter a valid date';
                         return true;
                       }
                     })}
                     className={`form-input ${errors.dateOfBirth ? 'form-input-error' : ''}`}
-                    max={new Date(Date.now() - 18 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                    placeholder="MM/DD/YYYY (e.g., 02/04/1992)"
+                    maxLength={10}
+                    onInput={(e) => {
+                      // Auto-format as user types
+                      let value = e.currentTarget.value.replace(/\D/g, '');
+                      if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2);
+                      }
+                      if (value.length >= 5) {
+                        value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                      }
+                      e.currentTarget.value = value;
+                    }}
                   />
                   {errors.dateOfBirth && (
                     <p className="form-error">{errors.dateOfBirth.message}</p>
@@ -300,10 +437,11 @@ export default function HealthScreeningForm({
                 </div>
                 
                 <div>
-                  <label className="form-label">Phone Number (Optional)</label>
+                  <label className="form-label">Phone Number *</label>
                   <input
                     type="tel"
                     {...register('phone', {
+                      required: 'Phone number is required',
                       pattern: {
                         value: /^[\+]?[1-9][\d]{0,15}$/,
                         message: 'Please enter a valid phone number'
@@ -425,10 +563,13 @@ export default function HealthScreeningForm({
                 ) : (
                   <div className="text-center space-y-4">
                     <div className="camera-container">
-                      <img
+                      <Image
                         src={capturedImage}
                         alt="Captured selfie"
                         className="camera-preview"
+                        width={640}
+                        height={480}
+                        unoptimized={true}
                       />
                     </div>
                     
@@ -593,7 +734,7 @@ export default function HealthScreeningForm({
             </div>
           )}
 
-          {/* Step 4: Consent */}
+          {/* Step 4: TCPA Consent */}
           {currentStep === 4 && (
             <div className="card animate-fade-in-up">
               <div className="card-header">
@@ -611,56 +752,22 @@ export default function HealthScreeningForm({
                     <label className="flex items-start space-x-3">
                       <input
                         type="checkbox"
-                        {...register('consentScheduling', { required: true })}
+                        {...register('tcpaConsent', { required: true })}
                         className="checkbox-custom mt-1"
                       />
                       <div>
                         <span className="font-medium text-trust-900">
-                          I consent to be contacted for scheduling follow-up appointments
+                          TCPA Consent - I agree to be contacted about my health screening
                         </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          This allows us to help you schedule any necessary follow-up care or consultations.
+                        <p className="text-sm text-trust-600 mt-2">
+                          By providing my phone number and checking this box, I consent to receive calls, texts, and messages from this health ministry regarding my health screening results, follow-up appointments, health tips, and related communications. I understand that:
                         </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="medical-card card">
-                  <div className="card-body">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('consentTexting', { required: true })}
-                        className="checkbox-custom mt-1"
-                      />
-                      <div>
-                        <span className="font-medium text-trust-900">
-                          I consent to receive text messages about my health
-                        </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          We may send you important health reminders, tips, and updates via text message.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="medical-card card">
-                  <div className="card-body">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        {...register('consentFollowup', { required: true })}
-                        className="checkbox-custom mt-1"
-                      />
-                      <div>
-                        <span className="font-medium text-trust-900">
-                          I consent to follow-up communications about my health screening
-                        </span>
-                        <p className="text-sm text-trust-600 mt-1">
-                          This includes calls, emails, or messages about your results and next steps.
-                        </p>
+                        <ul className="text-sm text-trust-600 mt-2 ml-4 space-y-1">
+                          <li>• Message and data rates may apply</li>
+                          <li>• I can opt-out at any time by replying STOP</li>
+                          <li>• This consent is not required to receive services</li>
+                          <li>• Communications may include appointment reminders, health education, and follow-up care coordination</li>
+                        </ul>
                       </div>
                     </label>
                   </div>

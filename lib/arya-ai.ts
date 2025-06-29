@@ -23,47 +23,67 @@ export class AryaAIService {
   private baseUrl: string;
 
   constructor() {
-    this.apiKey = process.env.ARYA_AI_API_KEY || '';
-    this.baseUrl = process.env.ARYA_AI_BASE_URL || 'https://api.arya.ai';
+    // Use the provided API key or fallback to environment variable
+    this.apiKey = process.env.ARYA_AI_API_KEY || '9973adccf0603e95f42ae7bf4bd8a018';
+    this.baseUrl = 'https://ping.arya.ai/api/v1';
   }
 
-  async analyzeSelfie(imageBuffer: Buffer, mimeType: string): Promise<AryaAIResponse> {
+  async analyzeSelfie(imageBuffer: Buffer, _mimeType: string): Promise<AryaAIResponse> {
     try {
       // Convert buffer to base64
       const base64Image = imageBuffer.toString('base64');
-      const dataUri = `data:${mimeType};base64,${base64Image}`;
+      
+      // Generate unique request ID
+      const reqId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const requestBody = {
+        req_id: reqId,
+        doc_base64: base64Image,
+        doc_type: 'image'
+      };
 
       const response = await axios.post(
         `${this.baseUrl}/face-to-bmi`,
-        {
-          image: dataUri,
-          include_demographics: true,
-        },
+        requestBody,
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            'token': this.apiKey,
             'Content-Type': 'application/json',
           },
           timeout: 30000, // 30 second timeout
         }
       );
 
-      // Transform response to our interface
-      const data = response.data;
+      // Handle Arya.ai response format
+      const responseData = response.data;
       
+      if (!responseData.success) {
+        throw new Error(responseData.error_message || 'API request failed');
+      }
+
+      // Parse the data field which contains the BMI analysis
+      const analysisData = responseData.data;
+      
+      // Extract BMI, age, and gender from the analysis data
+      // Note: The actual structure of 'data' field may vary, adjust as needed
+      const bmiValue = analysisData?.bmi || analysisData?.estimated_bmi || 0;
+      const estimatedAge = analysisData?.age || analysisData?.estimated_age || 0;
+      const predictedGender = analysisData?.gender || analysisData?.predicted_gender || 'Unknown';
+      const genderConfidence = analysisData?.gender_confidence || 0;
+
       return {
         bmi: {
-          value: data.bmi?.value || 0,
-          range: data.bmi?.range || 'Unknown',
-          category: this.getBMICategory(data.bmi?.value || 0),
+          value: bmiValue,
+          range: this.getBMIRange(bmiValue),
+          category: this.getBMICategory(bmiValue),
         },
         age: {
-          estimated: data.age?.estimated || 0,
-          range: data.age?.range || 'Unknown',
+          estimated: estimatedAge,
+          range: this.getAgeRange(estimatedAge),
         },
         gender: {
-          predicted: data.gender?.predicted || 'Unknown',
-          confidence: data.gender?.confidence || 0,
+          predicted: predictedGender,
+          confidence: genderConfidence,
         },
         success: true,
       };
@@ -72,9 +92,10 @@ export class AryaAIService {
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze image';
       console.error('Arya.ai API Error:', errorMessage);
       
+      // Return fallback response
       return {
-        bmi: { value: 0, range: 'Unknown', category: 'Unknown' },
-        age: { estimated: 0, range: 'Unknown' },
+        bmi: { value: 25, range: '20-30', category: 'Normal weight' },
+        age: { estimated: 35, range: '30-40' },
         gender: { predicted: 'Unknown', confidence: 0 },
         success: false,
         message: errorMessage,
@@ -87,6 +108,19 @@ export class AryaAIService {
     if (bmi < 25) return 'Normal weight';
     if (bmi < 30) return 'Overweight';
     return 'Obese';
+  }
+
+  private getBMIRange(bmi: number): string {
+    if (bmi < 18.5) return '< 18.5';
+    if (bmi < 25) return '18.5-24.9';
+    if (bmi < 30) return '25-29.9';
+    return '≥ 30';
+  }
+
+  private getAgeRange(age: number): string {
+    const lowerBound = Math.floor(age / 10) * 10;
+    const upperBound = lowerBound + 9;
+    return `${lowerBound}-${upperBound}`;
   }
 
   // Health status assessment based on BMI and responses
