@@ -7,11 +7,11 @@ const awsConfig = {
   region: process.env.APP_AWS_REGION || 'us-east-1',
   // Only use explicit credentials for local development
   // In production (AWS Lambda), let SDK use IAM role credentials automatically
-  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY 
+  ...(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY 
     ? {
         credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          accessKeyId: process.env.APP_ACCESS_KEY_ID,
+          secretAccessKey: process.env.APP_SECRET_ACCESS_KEY,
         },
       }
     : {}),
