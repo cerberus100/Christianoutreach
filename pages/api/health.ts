@@ -75,7 +75,6 @@ export default async function handler(
         TableName: TABLES.SUBMISSIONS,
       }));
     } catch (error) {
-      console.error('Database health check failed:', error);
       debugInfo.error = error instanceof Error ? error.message : 'Unknown error';
       databaseStatus = 'unhealthy';
     }
@@ -99,7 +98,6 @@ export default async function handler(
     res.status(statusCode).json(healthStatus);
 
   } catch (error) {
-    console.error('Health check error:', error);
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
