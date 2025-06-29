@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { docClient, TABLES } from '@/lib/aws-config';
+import { TABLES } from '@/lib/aws-config';
 import { DynamoDBClient, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 
 interface HealthStatus {
@@ -36,7 +36,7 @@ export default async function handler(
     });
   }
 
-  const debugInfo: any = {};
+  const debugInfo: Record<string, any> = {};
 
   try {
     // Check environment variables
