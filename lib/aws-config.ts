@@ -26,9 +26,9 @@ export const s3Client = new S3Client(awsConfig);
 
 // Table Names
 export const TABLES = {
-  SUBMISSIONS: process.env.AWS_DYNAMODB_TABLE_NAME || 'health-screening-submissions',
-  CHURCHES: process.env.AWS_DYNAMODB_CHURCHES_TABLE || 'health-screening-churches',
-  USERS: process.env.AWS_DYNAMODB_USERS_TABLE || 'health-screening-users',
+  SUBMISSIONS: process.env.APP_DYNAMODB_TABLE_NAME || 'health-screening-submissions',
+  CHURCHES: process.env.APP_DYNAMODB_CHURCHES_TABLE || 'health-screening-churches',
+  USERS: process.env.APP_DYNAMODB_USERS_TABLE || 'health-screening-users',
 };
 
 // S3 Bucket
