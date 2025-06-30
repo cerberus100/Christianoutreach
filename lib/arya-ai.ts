@@ -42,6 +42,8 @@ export class AryaAIService {
         doc_type: 'image'
       };
 
+      console.log('Sending request to Arya AI API...');
+
       const response = await axios.post(
         `${this.baseUrl}/face-to-bmi`,
         requestBody,
@@ -56,20 +58,60 @@ export class AryaAIService {
 
       // Handle Arya.ai response format
       const responseData = response.data;
+      console.log('Arya AI Response:', JSON.stringify(responseData, null, 2));
       
       if (!responseData.success) {
         throw new Error(responseData.error_message || 'API request failed');
       }
 
-      // Parse the data field which contains the BMI analysis
-      const analysisData = responseData.data;
+      // Parse the extracted_data field which contains the BMI analysis
+      const extractedData = responseData.extracted_data || [];
+      
+      // Check if we have any extracted data
+      if (!extractedData.length) {
+        console.warn('No data extracted from image - using fallback values');
+        return {
+          bmi: { value: 25, range: '20-30', category: 'Normal weight' },
+          age: { estimated: 35, range: '30-40' },
+          gender: { predicted: 'Unknown', confidence: 0 },
+          success: false,
+          message: 'No biometric data could be extracted from the image',
+        };
+      }
+
+      // Get the first (and typically only) extracted data item
+      const analysisData = extractedData[0];
       
       // Extract BMI, age, and gender from the analysis data
-      // Note: The actual structure of 'data' field may vary, adjust as needed
-      const bmiValue = analysisData?.bmi || analysisData?.estimated_bmi || 0;
-      const estimatedAge = analysisData?.age || analysisData?.estimated_age || 0;
-      const predictedGender = analysisData?.gender || analysisData?.predicted_gender || 'Unknown';
-      const genderConfidence = analysisData?.gender_confidence || 0;
+      // The actual structure may vary, so we'll try multiple possible field names
+      const bmiValue = analysisData?.bmi || 
+                      analysisData?.estimated_bmi || 
+                      analysisData?.BMI || 
+                      analysisData?.body_mass_index || 
+                      0;
+      
+      const estimatedAge = analysisData?.age || 
+                          analysisData?.estimated_age || 
+                          analysisData?.Age || 
+                          analysisData?.predicted_age || 
+                          0;
+      
+      const predictedGender = analysisData?.gender || 
+                             analysisData?.predicted_gender || 
+                             analysisData?.Gender || 
+                             analysisData?.sex || 
+                             'Unknown';
+      
+      const genderConfidence = analysisData?.gender_confidence || 
+                              analysisData?.confidence || 
+                              0;
+
+      console.log('Extracted values:', {
+        bmiValue,
+        estimatedAge,
+        predictedGender,
+        genderConfidence
+      });
 
       return {
         bmi: {
@@ -91,6 +133,7 @@ export class AryaAIService {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze image';
       console.error('Arya.ai API Error:', errorMessage);
+      console.error('Error details:', error);
       
       // Return fallback response
       return {
