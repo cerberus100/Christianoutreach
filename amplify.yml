@@ -26,11 +26,9 @@ frontend:
             echo "WARNING: APP_AWS_REGION not set, using default us-east-1"
             export APP_AWS_REGION=us-east-1
           fi
-        main
         - echo "Environment variables validated successfully"
 
         - echo "Dependencies installed successfully"
-        main
     build:
       commands:
         - echo "Building Next.js application..."
