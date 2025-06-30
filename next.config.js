@@ -17,6 +17,15 @@ const nextConfig = {
   // Environment variables
   env: {
     CUSTOM_KEY: 'health-screening-system',
+    // Explicitly expose environment variables to serverless functions
+    JWT_SECRET: process.env.JWT_SECRET,
+    APP_AWS_REGION: process.env.APP_AWS_REGION,
+    APP_ACCESS_KEY_ID: process.env.APP_ACCESS_KEY_ID, 
+    APP_SECRET_ACCESS_KEY: process.env.APP_SECRET_ACCESS_KEY,
+    APP_DYNAMODB_TABLE_NAME: process.env.APP_DYNAMODB_TABLE_NAME,
+    APP_DYNAMODB_CHURCHES_TABLE: process.env.APP_DYNAMODB_CHURCHES_TABLE,
+    APP_DYNAMODB_USERS_TABLE: process.env.APP_DYNAMODB_USERS_TABLE,
+    APP_S3_BUCKET_NAME: process.env.APP_S3_BUCKET_NAME,
   },
 
   // Experimental features

@@ -22,11 +22,15 @@ frontend:
             exit 1
           fi
         - |
-          if [ -z "$AWS_REGION" ]; then
-            echo "WARNING: AWS_REGION not set, using default us-east-1"
-            export AWS_REGION=us-east-1
+          if [ -z "$APP_AWS_REGION" ]; then
+            echo "WARNING: APP_AWS_REGION not set, using default us-east-1"
+            export APP_AWS_REGION=us-east-1
           fi
+        main
+        - echo "Environment variables validated successfully"
+
         - echo "Dependencies installed successfully"
+        main
     build:
       commands:
         - echo "Building Next.js application..."
