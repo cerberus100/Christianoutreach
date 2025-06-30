@@ -22,7 +22,7 @@ import { HealthSubmission, ApiResponse, DeviceInfo, NetworkInfo } from '@/types'
 
 // Development mode check
 const isDevelopment = process.env.NODE_ENV === 'development';
-const hasAWSCredentials = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+const hasAWSCredentials = !!(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY);
 
 console.log('API Environment:', {
   isDevelopment,
