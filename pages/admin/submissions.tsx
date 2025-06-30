@@ -366,7 +366,9 @@ export default function SubmissionsPage() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="text-trust-900">
-                              {submission.estimatedBMI?.toFixed(1) || 'N/A'}
+                              {submission.estimatedBMI && !isNaN(Number(submission.estimatedBMI)) 
+                                ? Number(submission.estimatedBMI).toFixed(1) 
+                                : 'N/A'}
                             </div>
                             {submission.bmiCategory && (
                               <div className="text-xs text-trust-500">
@@ -459,7 +461,11 @@ export default function SubmissionsPage() {
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-sm font-medium text-trust-700">Estimated BMI</label>
-                      <p className="text-trust-900">{selectedSubmission.estimatedBMI?.toFixed(1) || 'N/A'}</p>
+                      <p className="text-trust-900">
+                        {selectedSubmission.estimatedBMI && !isNaN(Number(selectedSubmission.estimatedBMI))
+                          ? Number(selectedSubmission.estimatedBMI).toFixed(1)
+                          : 'N/A'}
+                      </p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-trust-700">Estimated Age</label>
