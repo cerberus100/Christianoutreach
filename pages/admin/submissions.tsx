@@ -10,6 +10,7 @@ import {
 import { HealthSubmission } from '@/types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import GeneticTestingPortfolio from '../../components/GeneticTestingPortfolio';
 
 export default function SubmissionsPage() {
   const router = useRouter();
@@ -20,7 +21,8 @@ export default function SubmissionsPage() {
   const [filterRisk, setFilterRisk] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<HealthSubmission | null>(null);
-  const [showModal, setShowModal] = useState(false);
+
+  const [showGeneticPortfolio, setShowGeneticPortfolio] = useState(false);
 
   const fetchSubmissions = useCallback(async (token: string) => {
     try {
@@ -173,6 +175,15 @@ export default function SubmissionsPage() {
       case 'Contacted': return 'bg-primary-100 text-primary-800';
       case 'Scheduled': return 'bg-medical-100 text-medical-800';
       default: return 'bg-trust-100 text-trust-800';
+    }
+  };
+
+  const handleRecommendationUpdate = (recommendations: string[]) => {
+    if (selectedSubmission) {
+      setSelectedSubmission(prev => prev ? {
+        ...prev,
+        recommendations
+      } : null);
     }
   };
 
@@ -400,7 +411,7 @@ export default function SubmissionsPage() {
                             <button
                               onClick={() => {
                                 setSelectedSubmission(submission);
-                                setShowModal(true);
+                                setShowGeneticPortfolio(false);
                               }}
                               className="text-primary-600 hover:text-primary-900"
                               title="View details"
@@ -419,7 +430,7 @@ export default function SubmissionsPage() {
         </div>
 
         {/* Submission Details Modal */}
-        {showModal && selectedSubmission && (
+        {selectedSubmission && !showGeneticPortfolio && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-90vh overflow-y-auto">
               <div className="p-6">
@@ -428,10 +439,10 @@ export default function SubmissionsPage() {
                     Submission Details
                   </h3>
                   <button
-                    onClick={() => setShowModal(false)}
+                    onClick={() => setShowGeneticPortfolio(true)}
                     className="text-trust-400 hover:text-trust-600"
                   >
-                    ✕
+                    🧬 Genetic Analysis
                   </button>
                 </div>
 
@@ -582,13 +593,68 @@ export default function SubmissionsPage() {
 
                 <div className="mt-6 flex justify-end">
                   <button
-                    onClick={() => setShowModal(false)}
+                    onClick={() => setShowGeneticPortfolio(true)}
                     className="btn-primary"
+                  >
+                    Genetic Analysis
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Genetic Testing Portfolio Modal */}
+        {selectedSubmission && showGeneticPortfolio && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-trust-900">
+                  Genetic Testing Analysis - {selectedSubmission.firstName} {selectedSubmission.lastName}
+                </h3>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowGeneticPortfolio(false)}
+                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                  >
+                    Back to Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSubmission(null);
+                      setShowGeneticPortfolio(false);
+                    }}
+                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
                   >
                     Close
                   </button>
                 </div>
               </div>
+
+                             <GeneticTestingPortfolio 
+                 submission={{
+                   id: selectedSubmission.id,
+                   name: `${selectedSubmission.firstName} ${selectedSubmission.lastName}`,
+                   age: 0, // Default age since not available in current data
+                   gender: 'Unknown', // Default gender since not available
+                   healthRiskScore: selectedSubmission.healthRiskScore || 0,
+                   estimatedBMI: selectedSubmission.estimatedBMI || 0,
+                   bmiCategory: selectedSubmission.bmiCategory || 'Unknown',
+                   familyHistory: {
+                     diabetes: false, // Default values - these would come from form data
+                     hypertension: false,
+                     dementia: false,
+                     heartDisease: false
+                   },
+                   symptoms: {
+                     nervePain: false, // Default values - these would come from form data
+                     memoryIssues: false,
+                     balanceProblems: false,
+                     visionChanges: false
+                   }
+                 }}
+                 onRecommendationUpdate={handleRecommendationUpdate}
+               />
             </div>
           </div>
         )}
