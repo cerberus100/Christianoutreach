@@ -10,7 +10,7 @@ import {
 import { HealthSubmission } from '@/types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import GeneticTestingPortfolio from '../../components/GeneticTestingPortfolio';
+import HealthAnalysisPortfolio from '../../components/GeneticTestingPortfolio';
 
 export default function SubmissionsPage() {
   const router = useRouter();
@@ -442,7 +442,7 @@ export default function SubmissionsPage() {
                     onClick={() => setShowGeneticPortfolio(true)}
                     className="text-trust-400 hover:text-trust-600"
                   >
-                    🧬 Genetic Analysis
+                    🏥 Medical Referrals
                   </button>
                 </div>
 
@@ -596,7 +596,7 @@ export default function SubmissionsPage() {
                     onClick={() => setShowGeneticPortfolio(true)}
                     className="btn-primary"
                   >
-                    Genetic Analysis
+                    Medical Referrals
                   </button>
                 </div>
               </div>
@@ -610,7 +610,7 @@ export default function SubmissionsPage() {
             <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-trust-900">
-                  Genetic Testing Analysis - {selectedSubmission.firstName} {selectedSubmission.lastName}
+                  Medical Recommendations - {selectedSubmission.firstName} {selectedSubmission.lastName}
                 </h3>
                 <div className="flex space-x-2">
                   <button
@@ -631,7 +631,7 @@ export default function SubmissionsPage() {
                 </div>
               </div>
 
-                             <GeneticTestingPortfolio 
+                             <HealthAnalysisPortfolio 
                  submission={{
                    id: selectedSubmission.id,
                    name: `${selectedSubmission.firstName} ${selectedSubmission.lastName}`,
