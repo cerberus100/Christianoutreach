@@ -175,6 +175,7 @@ export default function DashboardPage() {
           stats={stats}
           onExportData={handleExportData}
           onViewSubmissions={handleViewSubmissions}
+          onRefresh={() => fetchDashboardData(localStorage.getItem('adminToken') || '')}
         />
       </div>
     </>

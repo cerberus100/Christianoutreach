@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
+import { SNSClient } from '@aws-sdk/client-sns';
 
 // AWS Configuration
 const awsConfig = {
@@ -23,6 +24,9 @@ export const docClient = DynamoDBDocumentClient.from(dynamoDBClient);
 
 // S3 Client
 export const s3Client = new S3Client(awsConfig);
+
+// SNS Client
+export const snsClient = new SNSClient(awsConfig);
 
 // Table Names
 export const TABLES = {

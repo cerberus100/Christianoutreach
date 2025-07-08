@@ -28,11 +28,13 @@ import {
 } from 'recharts';
 import { DashboardStats } from '@/types';
 import { format } from 'date-fns';
+import SMSManagement from './SMSManagement';
 
 interface AdminDashboardProps {
   stats: DashboardStats;
   onExportData: () => void;
   onViewSubmissions: () => void;
+  onRefresh?: () => void;
 }
 
 const RISK_COLORS = {
@@ -53,6 +55,7 @@ export default function AdminDashboard({
   stats,
   onExportData,
   onViewSubmissions,
+  onRefresh,
 }: AdminDashboardProps) {
   // const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'all'>('week');
   // const [selectedMetric, setSelectedMetric] = useState<'submissions' | 'risk' | 'bmi'>('submissions');
@@ -514,6 +517,14 @@ export default function AdminDashboard({
           </div>
         </div>
       </div>
+
+      {/* SMS Management */}
+      {onRefresh && (
+        <SMSManagement 
+          submissions={stats.recentSubmissions} 
+          onRefresh={onRefresh}
+        />
+      )}
     </div>
   );
 } 
