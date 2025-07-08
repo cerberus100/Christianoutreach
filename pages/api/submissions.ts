@@ -457,6 +457,27 @@ export default async function handler(
     console.log('=== SUBMISSION SUCCESSFUL ===');
     console.log('Submission ID:', submissionId);
 
+    // Send welcome SMS if enabled and user consented
+    if (formData.tcpaConsent && formData.phone) {
+      try {
+        const { smsService } = await import('../../lib/sms-service');
+        if (smsService.isEnabled()) {
+          console.log('Sending welcome SMS...');
+          const smsResult = await smsService.sendWelcomeSMS(formData.phone, formData.firstName);
+          if (smsResult.success) {
+            console.log('Welcome SMS sent successfully:', smsResult.messageId);
+          } else {
+            console.warn('Failed to send welcome SMS:', smsResult.error);
+          }
+        } else {
+          console.log('SMS service is disabled, skipping welcome SMS');
+        }
+      } catch (error) {
+        console.error('SMS service error:', error);
+        // Don't fail the submission if SMS fails
+      }
+    }
+
     // Return success response
     res.status(201).json({
       success: true,
