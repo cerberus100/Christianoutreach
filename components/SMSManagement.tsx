@@ -126,6 +126,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
         toast.error(result.error || 'SMS service test failed');
       }
     } catch (error) {
+      console.error('SMS service test error:', error);
       toast.error('Failed to test SMS service');
     } finally {
       setIsLoading(false);
