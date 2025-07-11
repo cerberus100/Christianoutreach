@@ -43,7 +43,7 @@ export default async function handler(
     // Add prayer hands icon in the center and artistic styling
     const styledSvg = svgString.replace(
       '<svg',
-      `<svg style="border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" xmlns="http://www.w3.org/2000/svg"`
+      `<svg style="border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"`
     ).replace(
       '</svg>',
       `
