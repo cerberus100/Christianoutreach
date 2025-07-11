@@ -11,6 +11,7 @@ import {
   EyeIcon,
   LinkIcon,
   ClipboardDocumentIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { OutreachLocation } from '@/types';
 import toast from 'react-hot-toast';
@@ -29,6 +30,7 @@ export default function LocationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLocation, setEditingLocation] = useState<OutreachLocation | null>(null);
+  const [openQRDropdown, setOpenQRDropdown] = useState<string | null>(null);
 
   const {
     register,
@@ -76,6 +78,21 @@ export default function LocationsPage() {
     }
     fetchLocations(token);
   }, [router, fetchLocations]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openQRDropdown) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.relative')) {
+          setOpenQRDropdown(null);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openQRDropdown]);
 
   const onSubmit = async (data: LocationForm) => {
     const token = localStorage.getItem('adminToken');
@@ -157,22 +174,23 @@ export default function LocationsPage() {
     toast.success(`${label} copied to clipboard!`);
   };
 
-  const downloadQRCode = async (location: OutreachLocation) => {
+  const downloadQRCode = async (location: OutreachLocation, style: 'regular' | 'prayer' = 'regular') => {
     try {
       const formUrl = `${window.location.origin}/form/${location.id}`;
-      const qrResponse = await fetch(`/api/admin/qr-code?url=${encodeURIComponent(formUrl)}&name=${encodeURIComponent(location.name)}`);
+      const endpoint = style === 'prayer' ? '/api/admin/qr-code-prayer' : '/api/admin/qr-code';
+      const qrResponse = await fetch(`${endpoint}?url=${encodeURIComponent(formUrl)}&name=${encodeURIComponent(location.name)}`);
       
       if (qrResponse.ok) {
         const blob = await qrResponse.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${location.name}-qr-code.png`;
+        a.download = `${location.name}-${style}-qr.${style === 'prayer' ? 'svg' : 'png'}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success('QR Code downloaded!');
+        toast.success(`${style === 'prayer' ? 'Prayer Hands' : 'Regular'} QR Code downloaded!`);
       } else {
         toast.error('Failed to generate QR code');
       }
@@ -427,13 +445,40 @@ export default function LocationsPage() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => downloadQRCode(location)}
-                                  className="text-primary-600 hover:text-primary-900"
-                                  title="Download QR Code"
-                                >
-                                  <QrCodeIcon className="w-4 h-4" />
-                                </button>
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setOpenQRDropdown(openQRDropdown === location.id ? null : location.id)}
+                                    className="text-primary-600 hover:text-primary-900 flex items-center"
+                                    title="Download QR Code"
+                                  >
+                                    <QrCodeIcon className="w-4 h-4" />
+                                    <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                  </button>
+                                  {openQRDropdown === location.id && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-trust-200 rounded-md shadow-lg z-50">
+                                      <div className="py-1">
+                                        <button
+                                          onClick={() => {
+                                            downloadQRCode(location, 'regular');
+                                            setOpenQRDropdown(null);
+                                          }}
+                                          className="block w-full text-left px-4 py-2 text-sm text-trust-900 hover:bg-trust-50"
+                                        >
+                                          📱 Regular QR Code
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            downloadQRCode(location, 'prayer');
+                                            setOpenQRDropdown(null);
+                                          }}
+                                          className="block w-full text-left px-4 py-2 text-sm text-trust-900 hover:bg-trust-50"
+                                        >
+                                          🙏 Prayer Hands QR Code
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                                 <button
                                   onClick={() => handleEdit(location)}
                                   className="text-trust-600 hover:text-trust-900"
