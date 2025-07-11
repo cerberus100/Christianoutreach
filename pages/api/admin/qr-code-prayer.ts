@@ -22,44 +22,23 @@ export default async function handler(
   }
 
   try {
-    // Prayer hands SVG icon
-    const prayerHandsIcon = `
-      <g transform="translate(50, 50) scale(0.8)">
-        <path d="M12 2C10.9 2 10 2.9 10 4V11C10 11.6 10.4 12 11 12S12 11.6 12 11V4C12 2.9 11.1 2 10 2H12Z" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <path d="M8 11V4C8 2.9 8.9 2 10 2S12 2.9 12 4V11C12 11.6 11.6 12 11 12S10 11.6 10 11V4C10 2.9 9.1 2 8 2V11Z" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <path d="M14 11V4C14 2.9 13.1 2 12 2S10 2.9 10 4V11C10 11.6 10.4 12 11 12S12 11.6 12 11V4C12 2.9 12.9 2 14 2V11Z" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <ellipse cx="10" cy="14" rx="2" ry="4" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <ellipse cx="14" cy="14" rx="2" ry="4" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <path d="M8 14C8 16.2 9.8 18 12 18S16 16.2 16 14V12C16 10.9 15.1 10 14 10H10C8.9 10 8 10.9 8 12V14Z" fill="#8B5CF6" stroke="#6B46C1" stroke-width="0.5"/>
-        <text x="12" y="25" text-anchor="middle" font-size="3" fill="#6B46C1" font-family="serif">🙏</text>
-      </g>
-    `;
-
     // Generate QR code with prayer hands styling
     const qr = new QRCode({
       content: url as string,
       width: 300,
       height: 300,
-      margin: 20,
       color: '#1e293b',
       background: '#ffffff',
       ecl: 'M', // Medium error correction (allows for logo in center)
       join: true,
-      predefined: false,
       pretty: true,
-      
-      // Custom container with prayer hands styling
       container: 'svg-viewbox',
-      
-      // Add custom styling
       xmlDeclaration: false,
-      
-      // Custom padding and styling
       padding: 2,
     });
 
     // Get the SVG string
-    let svgString = qr.svg();
+    const svgString = qr.svg();
 
     // Add prayer hands icon in the center and artistic styling
     const styledSvg = svgString.replace(
