@@ -22,55 +22,120 @@ export default async function handler(
   }
 
   try {
-    // Generate QR code with prayer hands styling
+    // Generate QR code with high error correction for better shape tolerance
     const qr = new QRCode({
       content: url as string,
-      width: 300,
-      height: 300,
+      width: 400,
+      height: 400,
       color: '#1e293b',
-      background: '#ffffff',
-      ecl: 'M', // Medium error correction (allows for logo in center)
+      background: 'transparent',
+      ecl: 'H', // High error correction (allows for more distortion)
       join: true,
       pretty: true,
       container: 'svg-viewbox',
       xmlDeclaration: false,
-      padding: 2,
+      padding: 1,
     });
 
     // Get the SVG string
     const svgString = qr.svg();
 
-    // Add prayer hands icon in the center and artistic styling
-    const styledSvg = svgString.replace(
-      '<svg',
-      `<svg style="border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"`
-    ).replace(
-      '</svg>',
-      `
-      <!-- Prayer hands icon in center -->
-      <g transform="translate(${300/2 - 25}, ${300/2 - 25})">
-        <circle cx="25" cy="25" r="25" fill="white" stroke="#8B5CF6" stroke-width="2"/>
-        <g transform="translate(10, 8) scale(0.6)">
-          <path d="M12 2L10 4V16L12 18H14L16 16V4L14 2H12Z" fill="#8B5CF6"/>
-          <path d="M8 2L6 4V16L8 18H10L12 16V4L10 2H8Z" fill="#8B5CF6"/>
-          <path d="M6 18C6 20.21 7.79 22 10 22S14 20.21 14 18V16H6V18Z" fill="#8B5CF6"/>
-          <text x="10" y="32" text-anchor="middle" font-size="8" fill="#6B46C1">🙏</text>
+    // Create a prayer hands shaped QR code
+    const prayerHandsQR = `<svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Prayer hands shape as clipping mask -->
+        <clipPath id="prayerHandsClip">
+          <path d="M200 50 
+                   C190 45, 180 50, 175 60
+                   L175 150
+                   C175 160, 170 170, 160 175
+                   L140 185
+                   C130 190, 125 200, 125 210
+                   L125 280
+                   C125 300, 130 320, 140 335
+                   L155 365
+                   C165 380, 175 390, 185 395
+                   L195 400
+                   C198 402, 202 402, 205 400
+                   L215 395
+                   C225 390, 235 380, 245 365
+                   L260 335
+                   C270 320, 275 300, 275 280
+                   L275 210
+                   C275 200, 270 190, 260 185
+                   L240 175
+                   C230 170, 225 160, 225 150
+                   L225 60
+                   C220 50, 210 45, 200 50 Z" 
+                   fill="white"/>
+        </clipPath>
+        
+        <!-- Gradient for depth effect -->
+        <linearGradient id="prayerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:0.1"/>
+          <stop offset="100%" style="stop-color:#6B46C1;stop-opacity:0.2"/>
+        </linearGradient>
+        
+        <!-- Drop shadow filter -->
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      
+      <!-- Background -->
+      <rect width="400" height="500" fill="white"/>
+      
+      <!-- Prayer hands outline -->
+      <path d="M200 50 
+               C190 45, 180 50, 175 60
+               L175 150
+               C175 160, 170 170, 160 175
+               L140 185
+               C130 190, 125 200, 125 210
+               L125 280
+               C125 300, 130 320, 140 335
+               L155 365
+               C165 380, 175 390, 185 395
+               L195 400
+               C198 402, 202 402, 205 400
+               L215 395
+               C225 390, 235 380, 245 365
+               L260 335
+               C270 320, 275 300, 275 280
+               L275 210
+               C275 200, 270 190, 260 185
+               L240 175
+               C230 170, 225 160, 225 150
+               L225 60
+               C220 50, 210 45, 200 50 Z" 
+               fill="url(#prayerGradient)" 
+               stroke="#8B5CF6" 
+               stroke-width="2"
+               filter="url(#dropShadow)"/>
+      
+      <!-- QR Code clipped to prayer hands shape -->
+      <g transform="translate(0, 25)" clip-path="url(#prayerHandsClip)">
+        ${svgString.replace(/<svg[^>]*>/, '').replace('</svg>', '')}
+      </g>
+      
+      <!-- Decorative elements -->
+      <g opacity="0.6">
+        <!-- Small crosses at corners -->
+        <g transform="translate(50, 30)">
+          <line x1="0" y1="-5" x2="0" y2="5" stroke="#8B5CF6" stroke-width="2"/>
+          <line x1="-5" y1="0" x2="5" y2="0" stroke="#8B5CF6" stroke-width="2"/>
+        </g>
+        <g transform="translate(350, 30)">
+          <line x1="0" y1="-5" x2="0" y2="5" stroke="#8B5CF6" stroke-width="2"/>
+          <line x1="-5" y1="0" x2="5" y2="0" stroke="#8B5CF6" stroke-width="2"/>
         </g>
       </g>
       
-      <!-- Decorative corners -->
-      <g opacity="0.3">
-        <circle cx="40" cy="40" r="3" fill="#8B5CF6"/>
-        <circle cx="260" cy="40" r="3" fill="#8B5CF6"/>
-        <circle cx="40" cy="260" r="3" fill="#8B5CF6"/>
-        <circle cx="260" cy="260" r="3" fill="#8B5CF6"/>
-      </g>
-      
       <!-- Inspirational text -->
-      <text x="150" y="280" text-anchor="middle" font-size="10" fill="#6B46C1" font-family="serif" font-weight="bold">Health & Hope</text>
+      <text x="200" y="460" text-anchor="middle" font-size="14" fill="#6B46C1" font-family="serif" font-weight="bold">Health & Hope</text>
+      <text x="200" y="480" text-anchor="middle" font-size="10" fill="#8B5CF6" font-family="serif">Scan to connect with care</text>
       
-      </svg>`
-    );
+    </svg>`;
 
     // Set response headers
     res.setHeader('Content-Type', 'image/svg+xml');
@@ -82,8 +147,8 @@ export default async function handler(
       res.setHeader('Content-Disposition', 'attachment; filename="prayer-qr.svg"');
     }
 
-    // Send the styled SVG
-    res.status(200).send(styledSvg);
+    // Send the prayer hands shaped QR code
+    res.status(200).send(prayerHandsQR);
 
   } catch (error) {
     console.error('Prayer QR Code generation error:', error);
