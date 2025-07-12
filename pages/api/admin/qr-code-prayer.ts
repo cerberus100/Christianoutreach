@@ -40,38 +40,62 @@ export default async function handler(
     // Get the SVG string
     const svgString = qr.svg();
 
-    // Create a clean prayer hands shaped QR code based on the reference design
+    // Create a simple, recognizable prayer hands shaped QR code
     const prayerHandsQR = `<svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <!-- Clean prayer hands shape as clipping mask -->
+        <!-- Simple prayer hands shape as clipping mask -->
         <clipPath id="prayerHandsClip">
-          <path d="M200 80
-                   C205 75, 210 78, 215 85
-                   L225 110
-                   C230 120, 235 130, 240 140
-                   L250 165
-                   C255 175, 260 185, 265 195
-                   L275 220
-                   C280 235, 285 250, 288 265
-                   L290 280
-                   C292 295, 290 310, 285 325
-                   L275 350
-                   C270 365, 260 375, 245 380
-                   L225 385
-                   C215 387, 205 385, 200 380
-                   C195 385, 185 387, 175 385
-                   L155 380
-                   C140 375, 130 365, 125 350
-                   L115 325
-                   C110 310, 108 295, 110 280
-                   L112 265
-                   C115 250, 120 235, 125 220
-                   L135 195
-                   C140 185, 145 175, 150 165
-                   L160 140
-                   C165 130, 170 120, 175 110
-                   L185 85
-                   C190 78, 195 75, 200 80 Z" 
+          <path d="M200 50
+                   L170 65
+                   L150 80
+                   L140 100
+                   L135 120
+                   L130 140
+                   L125 160
+                   L120 180
+                   L115 200
+                   L110 220
+                   L105 240
+                   L100 260
+                   L95 280
+                   L90 300
+                   L85 320
+                   L80 340
+                   L75 360
+                   L70 380
+                   L75 400
+                   L85 420
+                   L100 440
+                   L120 450
+                   L140 460
+                   L160 470
+                   L180 480
+                   L200 485
+                   L220 480
+                   L240 470
+                   L260 460
+                   L280 450
+                   L300 440
+                   L315 420
+                   L325 400
+                   L330 380
+                   L325 360
+                   L320 340
+                   L315 320
+                   L310 300
+                   L305 280
+                   L300 260
+                   L295 240
+                   L290 220
+                   L285 200
+                   L280 180
+                   L275 160
+                   L270 140
+                   L265 120
+                   L260 100
+                   L250 80
+                   L230 65
+                   L200 50 Z" 
                    fill="white"/>
         </clipPath>
         
@@ -91,40 +115,67 @@ export default async function handler(
       <rect width="400" height="500" fill="white"/>
       
       <!-- Prayer hands outline -->
-      <path d="M200 80
-               C205 75, 210 78, 215 85
-               L225 110
-               C230 120, 235 130, 240 140
-               L250 165
-               C255 175, 260 185, 265 195
-               L275 220
-               C280 235, 285 250, 288 265
-               L290 280
-               C292 295, 290 310, 285 325
-               L275 350
-               C270 365, 260 375, 245 380
-               L225 385
-               C215 387, 205 385, 200 380
-               C195 385, 185 387, 175 385
-               L155 380
-               C140 375, 130 365, 125 350
-               L115 325
-               C110 310, 108 295, 110 280
-               L112 265
-               C115 250, 120 235, 125 220
-               L135 195
-               C140 185, 145 175, 150 165
-               L160 140
-               C165 130, 170 120, 175 110
-               L185 85
-               C190 78, 195 75, 200 80 Z" 
+      <path d="M200 50
+               L170 65
+               L150 80
+               L140 100
+               L135 120
+               L130 140
+               L125 160
+               L120 180
+               L115 200
+               L110 220
+               L105 240
+               L100 260
+               L95 280
+               L90 300
+               L85 320
+               L80 340
+               L75 360
+               L70 380
+               L75 400
+               L85 420
+               L100 440
+               L120 450
+               L140 460
+               L160 470
+               L180 480
+               L200 485
+               L220 480
+               L240 470
+               L260 460
+               L280 450
+               L300 440
+               L315 420
+               L325 400
+               L330 380
+               L325 360
+               L320 340
+               L315 320
+               L310 300
+               L305 280
+               L300 260
+               L295 240
+               L290 220
+               L285 200
+               L280 180
+               L275 160
+               L270 140
+               L265 120
+               L260 100
+               L250 80
+               L230 65
+               L200 50 Z" 
                fill="url(#prayerGradient)" 
                stroke="#8B5CF6" 
                stroke-width="2"
                filter="url(#dropShadow)"/>
       
+      <!-- Center dividing line to show two hands -->
+      <line x1="200" y1="50" x2="200" y2="485" stroke="#8B5CF6" stroke-width="1" opacity="0.3"/>
+      
       <!-- QR Code clipped to prayer hands shape -->
-      <g transform="translate(0, 25)" clip-path="url(#prayerHandsClip)">
+      <g transform="translate(0, 0)" clip-path="url(#prayerHandsClip)">
         ${svgString.replace(/<svg[^>]*>/g, '').replace(/<\/svg>/g, '')}
       </g>
       
@@ -142,8 +193,8 @@ export default async function handler(
       </g>
       
       <!-- Inspirational text -->
-      <text x="200" y="450" text-anchor="middle" font-size="14" fill="#6B46C1" font-family="serif" font-weight="bold">Health &amp; Hope</text>
-      <text x="200" y="470" text-anchor="middle" font-size="10" fill="#8B5CF6" font-family="serif">Scan to connect with care</text>
+      <text x="200" y="455" text-anchor="middle" font-size="14" fill="#6B46C1" font-family="serif" font-weight="bold">Health &amp; Hope</text>
+      <text x="200" y="475" text-anchor="middle" font-size="10" fill="#8B5CF6" font-family="serif">Scan to connect with care</text>
       
     </svg>`;
 
