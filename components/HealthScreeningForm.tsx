@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   UserIcon,
   HeartIcon,
+  DocumentTextIcon,
   ShieldCheckIcon,
   ArrowRightIcon,
   ArrowLeftIcon,
@@ -29,7 +30,8 @@ const STEPS = [
   { id: 1, name: 'Personal Info', icon: UserIcon },
   { id: 2, name: 'Photo', icon: CameraIcon },
   { id: 3, name: 'Health Questions', icon: HeartIcon },
-  { id: 4, name: 'Consent', icon: ShieldCheckIcon },
+  { id: 4, name: 'Additional Info', icon: DocumentTextIcon },
+  { id: 5, name: 'Consent', icon: ShieldCheckIcon },
 ];
 
 export default function HealthScreeningForm({ 
@@ -63,6 +65,11 @@ export default function HealthScreeningForm({
       familyHistoryHighBP: false,
       familyHistoryDementia: false,
       nerveSymptoms: false,
+      sex: 'male',
+      cardiovascularHistory: false,
+      chronicKidneyDisease: false,
+      diabetes: false,
+      insuranceType: 'private',
       tcpaConsent: false,
     },
   });
@@ -180,12 +187,16 @@ export default function HealthScreeningForm({
         isValid = true; // Health questions are optional
         break;
       case 4:
+        isValid = await trigger(['sex', 'cardiovascularHistory', 'chronicKidneyDisease', 'diabetes', 'insuranceType']);
+        if (!isValid) toast.error('Please answer all additional health questions');
+        break;
+      case 5:
         isValid = watch('tcpaConsent');
         if (!isValid) toast.error('Please provide TCPA consent to continue');
         break;
     }
 
-    if (isValid && currentStep < 4) {
+    if (isValid && currentStep < 5) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -734,8 +745,189 @@ export default function HealthScreeningForm({
             </div>
           )}
 
-          {/* Step 4: TCPA Consent */}
+          {/* Step 4: Additional Health Info */}
           {currentStep === 4 && (
+            <div className="card animate-fade-in-up">
+              <div className="card-header">
+                <h2 className="text-xl font-semibold text-trust-900 flex items-center">
+                  <DocumentTextIcon className="w-6 h-6 mr-2 text-primary-600" />
+                  Additional Health Information
+                </h2>
+                <p className="text-sm text-trust-600 mt-1">
+                  Let us know more about your health history and insurance
+                </p>
+              </div>
+              <div className="card-body space-y-6">
+                {/* Sex */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Sex</h3>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('sex', { required: true })}
+                          value="male"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Male</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('sex', { required: true })}
+                          value="female"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Female</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cardiovascular History */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Cardiovascular History</h3>
+                    <p className="text-sm text-trust-600 mb-4">
+                      Have you ever been diagnosed with heart disease, high blood pressure, or stroke?
+                    </p>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('cardiovascularHistory', { required: true })}
+                          value="true"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('cardiovascularHistory', { required: true })}
+                          value="false"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">No</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chronic Kidney Disease */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Chronic Kidney Disease</h3>
+                    <p className="text-sm text-trust-600 mb-4">
+                      Have you been diagnosed with chronic kidney disease or are you currently on dialysis?
+                    </p>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('chronicKidneyDisease', { required: true })}
+                          value="true"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('chronicKidneyDisease', { required: true })}
+                          value="false"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">No</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Diabetes */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Diabetes</h3>
+                    <p className="text-sm text-trust-600 mb-4">
+                      Have you ever been diagnosed with diabetes?
+                    </p>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('diabetes', { required: true })}
+                          value="true"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('diabetes', { required: true })}
+                          value="false"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">No</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                                 {/* Insurance Type */}
+                 <div className="health-card card">
+                   <div className="card-body">
+                     <h3 className="font-medium text-trust-900 mb-3">Insurance Type</h3>
+                     <p className="text-sm text-trust-600 mb-4">
+                       What type of insurance do you have?
+                     </p>
+                     <div className="space-y-3">
+                       <label className="flex items-center">
+                         <input
+                           type="radio"
+                           {...register('insuranceType', { required: true })}
+                           value="private"
+                           className="radio-custom"
+                         />
+                         <span className="ml-2">Private insurance (Blue Cross, Aetna, Kaiser, etc.)</span>
+                       </label>
+                       <label className="flex items-center">
+                         <input
+                           type="radio"
+                           {...register('insuranceType', { required: true })}
+                           value="government"
+                           className="radio-custom"
+                         />
+                         <span className="ml-2">Government insurance (Medicare, Medi-Cal, Medicaid, VA, etc.)</span>
+                       </label>
+                       <label className="flex items-center">
+                         <input
+                           type="radio"
+                           {...register('insuranceType', { required: true })}
+                           value="none"
+                           className="radio-custom"
+                         />
+                         <span className="ml-2">No insurance / Self-pay</span>
+                       </label>
+                       <label className="flex items-center">
+                         <input
+                           type="radio"
+                           {...register('insuranceType', { required: true })}
+                           value="not-sure"
+                           className="radio-custom"
+                         />
+                         <span className="ml-2">Not sure</span>
+                       </label>
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: TCPA Consent */}
+          {currentStep === 5 && (
             <div className="card animate-fade-in-up">
               <div className="card-header">
                 <h2 className="text-xl font-semibold text-trust-900 flex items-center">
@@ -801,7 +993,7 @@ export default function HealthScreeningForm({
               Previous
             </button>
 
-            {currentStep < 4 ? (
+            {currentStep < 5 ? (
               <button
                 type="button"
                 onClick={nextStep}

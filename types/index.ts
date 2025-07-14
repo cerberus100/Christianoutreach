@@ -53,6 +53,13 @@ export interface HealthSubmission {
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
   
+  // Additional health questions
+  sex: 'male' | 'female';
+  cardiovascularHistory: boolean;
+  chronicKidneyDisease: boolean;
+  diabetes: boolean;
+  insuranceType: 'private' | 'government' | 'none' | 'not-sure';
+  
   // TCPA Consent
   tcpaConsent: boolean;
   
@@ -201,6 +208,13 @@ export interface FormData {
   familyHistoryHighBP: boolean;
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
+  
+  // Additional health questions
+  sex: 'male' | 'female';
+  cardiovascularHistory: boolean;
+  chronicKidneyDisease: boolean;
+  diabetes: boolean;
+  insuranceType: 'private' | 'government' | 'none' | 'not-sure';
   
   // TCPA Consent
   tcpaConsent: boolean;
