@@ -84,10 +84,7 @@ export default function FormPage({ church, error }: FormPageProps) {
                 <div className="space-y-4 text-left">
                   <h3 className="font-semibold text-trust-900">What's Next?</h3>
                   <ul className="space-y-2 text-sm text-trust-600">
-                    <li className="flex items-start">
-                      <span className="flex-shrink-0 w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3"></span>
-                      We'll analyze your photo using AI to estimate your health metrics
-                    </li>
+
                     <li className="flex items-start">
                       <span className="flex-shrink-0 w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3"></span>
                       You'll receive your results and personalized recommendations
