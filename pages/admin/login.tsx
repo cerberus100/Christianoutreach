@@ -194,23 +194,7 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {/* Demo Credentials Notice (remove in production) */}
-          <div className="card bg-health-50 border-health-200">
-            <div className="card-body">
-              <div className="text-center">
-                <h3 className="text-sm font-medium text-health-800 mb-2">
-                  Demo Credentials
-                </h3>
-                <div className="text-xs text-health-600 space-y-1">
-                  <p><strong>Email:</strong> admin@demo.org</p>
-                  <p><strong>Password:</strong> demo123</p>
-                </div>
-                <p className="text-xs text-health-500 mt-2">
-                  (Remove this section in production)
-                </p>
-              </div>
-            </div>
-          </div>
+
 
           {/* Footer */}
           <div className="text-center">

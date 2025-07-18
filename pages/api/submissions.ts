@@ -20,13 +20,8 @@ import {
 } from '@/lib/device-tracker';
 import { HealthSubmission, ApiResponse, DeviceInfo, NetworkInfo } from '@/types';
 
-// Development mode check
-const isDevelopment = process.env.NODE_ENV === 'development';
-const hasAWSCredentials = !!(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY);
-
+// Production mode - always use AWS services
 console.log('API Environment:', {
-  isDevelopment,
-  hasAWSCredentials,
   bucket: S3_BUCKET,
   table: TABLES.SUBMISSIONS,
   region: process.env.AWS_REGION || 'us-east-1'
@@ -267,46 +262,39 @@ export default async function handler(
     console.log('S3 Key:', s3Key);
     
     // Upload photo to S3 with enhanced security
-    if (!hasAWSCredentials && isDevelopment) {
-      // Development mode: simulate S3 upload
-      console.log('Development mode: Simulating S3 upload (no real AWS credentials)');
-      selfieUrl = `https://development-mock-bucket.s3.amazonaws.com/${s3Key}`;
-    } else {
-      // Production mode: real S3 upload
+    try {
+      await s3Client.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: fileValidation.detectedMimeType || 'image/jpeg',
+        ContentDisposition: 'inline', // Prevent downloads as executable
+        ContentEncoding: undefined, // Prevent encoding tricks
+        Metadata: {
+          submissionId,
+          churchId: formData.churchId,
+          uploadDate: timestamp,
+          originalSize: fileBuffer.length.toString(),
+          clientIP: clientIP.substring(0, 12), // Partial IP for privacy
+        },
+        ServerSideEncryption: 'AES256', // Encrypt at rest
+        StorageClass: 'STANDARD_IA', // Cost optimization
+      }));
+      console.log('S3 upload successful');
+      selfieUrl = `https://${S3_BUCKET}.s3.amazonaws.com/${s3Key}`;
+    } catch (error) {
+      console.error('S3 upload failed:', error);
+      // Clean up local file
       try {
-        await s3Client.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: s3Key,
-          Body: fileBuffer,
-          ContentType: fileValidation.detectedMimeType || 'image/jpeg',
-          ContentDisposition: 'inline', // Prevent downloads as executable
-          ContentEncoding: undefined, // Prevent encoding tricks
-          Metadata: {
-            submissionId,
-            churchId: formData.churchId,
-            uploadDate: timestamp,
-            originalSize: fileBuffer.length.toString(),
-            clientIP: clientIP.substring(0, 12), // Partial IP for privacy
-          },
-          ServerSideEncryption: 'AES256', // Encrypt at rest
-          StorageClass: 'STANDARD_IA', // Cost optimization
-        }));
-        console.log('S3 upload successful');
-        selfieUrl = `https://${S3_BUCKET}.s3.amazonaws.com/${s3Key}`;
-      } catch (error) {
-        console.error('S3 upload failed:', error);
-        // Clean up local file
-        try {
-          fs.unlinkSync(selfieFile.filepath);
-        } catch (cleanupError) {
-          console.warn('Failed to clean up file after S3 error:', cleanupError);
-        }
-        
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to store uploaded file',
-        });
+        fs.unlinkSync(selfieFile.filepath);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up file after S3 error:', cleanupError);
       }
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to store uploaded file',
+      });
     }
 
     // Capture device and network information
@@ -337,39 +325,23 @@ export default async function handler(
     let aiAnalysis = null;
     let healthRisk = null;
     
-    if (!hasAWSCredentials && isDevelopment) {
-      // Development mode: mock AI analysis
-      console.log('Development mode: Simulating AI analysis');
-      aiAnalysis = {
-        success: true,
-        bmi: { value: 25.5, category: 'Normal' },
-        age: { estimated: 35 },
-        gender: { predicted: 'Unknown' }
-      };
-      healthRisk = {
-        riskLevel: 'Moderate' as const,
-        riskScore: 65,
-        recommendations: ['Regular exercise', 'Healthy diet', 'Regular checkups']
-      };
-    } else {
-      // Production mode: real AI analysis
-      try {
-        aiAnalysis = await aryaAI.analyzeSelfie(fileBuffer, fileValidation.detectedMimeType || 'image/jpeg');
-        
-        if (aiAnalysis.success) {
-          healthRisk = aryaAI.assessHealthRisk(
-            aiAnalysis.bmi.value,
-            formData.familyHistoryDiabetes,
-            formData.familyHistoryHighBP,
-            formData.familyHistoryDementia,
-            formData.nerveSymptoms
-          );
-        }
-        console.log('AI analysis completed');
-      } catch (error) {
-        console.error('AI Analysis error:', error);
-        // Continue without AI analysis if it fails
+    // Production mode: real AI analysis
+    try {
+      aiAnalysis = await aryaAI.analyzeSelfie(fileBuffer, fileValidation.detectedMimeType || 'image/jpeg');
+      
+      if (aiAnalysis.success) {
+        healthRisk = aryaAI.assessHealthRisk(
+          aiAnalysis.bmi.value,
+          formData.familyHistoryDiabetes,
+          formData.familyHistoryHighBP,
+          formData.familyHistoryDementia,
+          formData.nerveSymptoms
+        );
       }
+      console.log('AI analysis completed');
+    } catch (error) {
+      console.error('AI Analysis error:', error);
+      // Continue without AI analysis if it fails
     }
 
     console.log('Saving to DynamoDB...');
@@ -424,43 +396,30 @@ export default async function handler(
     };
 
     // Save to DynamoDB with error handling
-    if (!hasAWSCredentials && isDevelopment) {
-      // Development mode: simulate database save
-      console.log('Development mode: Simulating DynamoDB save (no real AWS credentials)');
-      console.log('Mock submission saved:', {
-        id: submissionId,
-        name: `${formData.firstName} ${formData.lastName}`,
-        church: formData.churchId
-      });
-    } else {
-      // Production mode: real database save
+    try {
+      await docClient.send(new PutCommand({
+        TableName: TABLES.SUBMISSIONS,
+        Item: submission,
+        ConditionExpression: 'attribute_not_exists(id)', // Prevent overwrites
+      }));
+      console.log('DynamoDB save successful');
+    } catch (error) {
+      console.error('DynamoDB save failed:', error);
+      
+      // Clean up S3 file if database save fails
       try {
-        await docClient.send(new PutCommand({
-          TableName: TABLES.SUBMISSIONS,
-          Item: submission,
-          ConditionExpression: 'attribute_not_exists(id)', // Prevent overwrites
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: s3Key,
         }));
-        console.log('DynamoDB save successful');
-      } catch (error) {
-        console.error('DynamoDB save failed:', error);
-        
-        // Clean up S3 file if database save fails (only in production)
-        if (hasAWSCredentials) {
-          try {
-            await s3Client.send(new DeleteObjectCommand({
-              Bucket: S3_BUCKET,
-              Key: s3Key,
-            }));
-          } catch (s3Error) {
-            console.error('Failed to clean up S3 file after DB error:', s3Error);
-          }
-        }
-        
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to save submission data',
-        });
+      } catch (s3Error) {
+        console.error('Failed to clean up S3 file after DB error:', s3Error);
       }
+      
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to save submission data',
+      });
     }
 
     // Clean up temporary file

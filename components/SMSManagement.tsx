@@ -114,7 +114,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phoneNumber: '+15551234567', // Test phone number
+          phoneNumber: '+1xxxxxxxxxx', // Production phone number
         }),
       });
 

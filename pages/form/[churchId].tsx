@@ -152,22 +152,27 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { churchId } = context.params!;
 
   try {
-    // In a real app, this would fetch from your database
-    // For now, we'll create a mock church object
-    const church: OutreachLocation = {
-      id: churchId as string,
-      name: `${churchId} Church`.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-      address: '123 Main St, City, State 12345',
-      contactPerson: 'Pastor John',
-      contactEmail: 'pastor@church.org',
-      contactPhone: '(555) 123-4567',
-      qrCode: `qr-${churchId}`,
-      createdDate: new Date().toISOString(),
-      isActive: true,
-    };
+    // Query the church/location from DynamoDB
+    const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+    const { docClient, TABLES } = await import('@/lib/aws-config');
+    
+    let church: OutreachLocation | null = null;
 
-    // TODO: Replace with actual database query
-    // const church = await getChurchById(churchId as string);
+    try {
+      const result = await docClient.send(new ScanCommand({
+        TableName: TABLES.CHURCHES,
+        FilterExpression: 'id = :churchId',
+        ExpressionAttributeValues: {
+          ':churchId': churchId as string,
+        },
+      }));
+
+      if (result.Items && result.Items.length > 0) {
+        church = result.Items[0] as OutreachLocation;
+      }
+    } catch (dbError) {
+      console.error('Database query error:', dbError);
+    }
     
     if (!church) {
       return {

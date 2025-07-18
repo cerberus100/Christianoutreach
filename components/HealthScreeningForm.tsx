@@ -459,7 +459,7 @@ export default function HealthScreeningForm({
                       }
                     })}
                     className={`form-input ${errors.phone ? 'form-input-error' : ''}`}
-                    placeholder="(555) 123-4567"
+                                            placeholder="(xxx) xxx-xxxx"
                   />
                   {errors.phone && (
                     <p className="form-error">{errors.phone.message}</p>

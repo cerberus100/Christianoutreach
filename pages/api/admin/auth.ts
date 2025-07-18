@@ -1,7 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { ApiResponse } from '@/types';
+import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { docClient, TABLES } from '@/lib/aws-config';
+import { ApiResponse, AdminUser } from '@/types';
 
 interface LoginRequest {
   email: string;
@@ -38,24 +40,41 @@ export default async function handler(
       });
     }
 
-    // Demo credentials (replace with database lookup in production)
-    const demoUser = {
-      id: 'admin-001',
-      email: 'admin@demo.org',
-      hashedPassword: await bcrypt.hash('demo123', 10),
-      role: 'admin',
-      firstName: 'System',
-      lastName: 'Administrator',
-    };
+    // Query user from DynamoDB
+    let user: AdminUser | null = null;
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: TABLES.USERS,
+        IndexName: 'EmailIndex', // Assuming GSI on email
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+          ':email': email.toLowerCase(),
+        },
+      }));
 
-    // In production, replace this with database query:
-    // const user = await getUserByEmail(email);
-    const user = email === demoUser.email ? demoUser : null;
+      if (result.Items && result.Items.length > 0) {
+        user = result.Items[0] as AdminUser;
+      }
+    } catch (dbError) {
+      console.error('Database lookup error:', dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Authentication system unavailable',
+      });
+    }
 
     if (!user) {
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password',
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: 'Account is deactivated',
       });
     }
 
@@ -82,8 +101,22 @@ export default async function handler(
       }
     );
 
-    // Log successful login (in production, save to database)
-    console.warn(`Admin login successful: ${email} at ${new Date().toISOString()}`);
+    // Update last login timestamp
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: TABLES.USERS,
+        Key: { id: user.id },
+        UpdateExpression: 'SET lastLogin = :timestamp',
+        ExpressionAttributeValues: {
+          ':timestamp': new Date().toISOString(),
+        },
+      }));
+    } catch (updateError) {
+      // Log but don't fail login for this
+      console.warn('Failed to update last login timestamp:', updateError);
+    }
+
+    console.log(`Admin login successful: ${email} at ${new Date().toISOString()}`);
 
     res.status(200).json({
       success: true,

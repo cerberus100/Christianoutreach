@@ -329,7 +329,7 @@ export default function LocationsPage() {
                         type="tel"
                         {...register('contactPhone', { required: 'Phone number is required' })}
                         className={`form-input ${errors.contactPhone ? 'form-input-error' : ''}`}
-                        placeholder="(555) 123-4567"
+                        placeholder="(xxx) xxx-xxxx"
                       />
                       {errors.contactPhone && (
                         <p className="form-error">{errors.contactPhone.message}</p>

@@ -1,13 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  UserIcon,
-  EyeIcon,
-  DocumentArrowDownIcon,
+import { 
   MagnifyingGlassIcon,
+  FunnelIcon,
+  DocumentArrowDownIcon,
+  EyeIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  CalendarIcon,
+  UserIcon,
+  HeartIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
-import { HealthSubmission } from '@/types';
+import { HealthSubmission, OutreachLocation } from '@/types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import HealthAnalysisPortfolio from '../../components/GeneticTestingPortfolio';
@@ -15,18 +24,32 @@ import HealthAnalysisPortfolio from '../../components/GeneticTestingPortfolio';
 export default function SubmissionsPage() {
   const router = useRouter();
   const [submissions, setSubmissions] = useState<HealthSubmission[]>([]);
+  const [locations, setLocations] = useState<OutreachLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterRisk, setFilterRisk] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<HealthSubmission | null>(null);
-
+  const [showFilters, setShowFilters] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showGeneticPortfolio, setShowGeneticPortfolio] = useState(false);
+
+  // Create location name mapping
+  const locationNameMap = new Map();
+  locations.forEach(location => {
+    locationNameMap.set(location.id, location.name);
+  });
 
   const fetchSubmissions = useCallback(async (token: string) => {
     try {
-      const response = await fetch('/api/admin/submissions', {
+      const params = new URLSearchParams();
+      if (filterLocation) params.append('location', filterLocation);
+      if (filterRisk) params.append('riskLevel', filterRisk);
+      if (filterStatus) params.append('followUpStatus', filterStatus);
+      if (searchTerm) params.append('search', searchTerm);
+
+      const response = await fetch(`/api/admin/submissions?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -51,17 +74,42 @@ export default function SubmissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [router, filterLocation, filterRisk, filterStatus, searchTerm]);
 
-  // Check authentication and fetch submissions
+  const fetchLocations = useCallback(async (token: string) => {
+    try {
+      const response = await fetch('/api/admin/locations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLocations(result.data);
+        }
+      }
+    } catch (error) {
+      console.error('Fetch locations error:', error);
+    }
+  }, []);
+
+  // Check authentication and fetch data
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       router.push('/admin/login');
       return;
     }
-    fetchSubmissions(token);
-  }, [router, fetchSubmissions]);
+    
+    // Fetch both submissions and locations
+    Promise.all([
+      fetchSubmissions(token),
+      fetchLocations(token)
+    ]);
+  }, [router, fetchSubmissions, fetchLocations]);
 
   const updateFollowUpStatus = async (submissionId: string, status: string, notes?: string) => {
     const token = localStorage.getItem('adminToken');
@@ -270,9 +318,9 @@ export default function SubmissionsPage() {
                     className="form-input"
                   >
                     <option value="">All Locations</option>
-                    <option value="loc-001">First Baptist Church</option>
-                    <option value="loc-002">Mount Olive Church</option>
-                    <option value="loc-003">New Hope Community Church</option>
+                    {locations.map(location => (
+                      <option key={location.id} value={location.id}>{location.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -359,10 +407,7 @@ export default function SubmissionsPage() {
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-trust-700">
-                              {submission.churchId === 'loc-001' ? 'First Baptist Church' :
-                               submission.churchId === 'loc-002' ? 'Mount Olive Church' :
-                               submission.churchId === 'loc-003' ? 'New Hope Community Church' :
-                               submission.churchId}
+                              {locationNameMap.get(submission.churchId) || submission.churchId}
                             </span>
                           </td>
                           <td className="py-3 px-4">
