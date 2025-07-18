@@ -3,18 +3,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { 
   MagnifyingGlassIcon,
-  FunnelIcon,
   DocumentArrowDownIcon,
   EyeIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  ExclamationTriangleIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  CalendarIcon,
   UserIcon,
-  HeartIcon,
-  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { HealthSubmission, OutreachLocation } from '@/types';
 import { format } from 'date-fns';
@@ -31,8 +22,6 @@ export default function SubmissionsPage() {
   const [filterRisk, setFilterRisk] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<HealthSubmission | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [showGeneticPortfolio, setShowGeneticPortfolio] = useState(false);
 
   // Create location name mapping
