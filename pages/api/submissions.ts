@@ -51,6 +51,11 @@ interface FormSubmissionData {
   familyHistoryHighBP: boolean;
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
+  sex: 'male' | 'female';
+  cardiovascularHistory: boolean;
+  chronicKidneyDisease: boolean;
+  diabetes: boolean;
+  insuranceType: 'private' | 'government' | 'none' | 'not-sure';
   tcpaConsent: boolean;
 }
 
@@ -149,6 +154,11 @@ export default async function handler(
       familyHistoryHighBP: (Array.isArray(fields.familyHistoryHighBP) ? fields.familyHistoryHighBP[0] : fields.familyHistoryHighBP) === 'true',
       familyHistoryDementia: (Array.isArray(fields.familyHistoryDementia) ? fields.familyHistoryDementia[0] : fields.familyHistoryDementia) === 'true',
       nerveSymptoms: (Array.isArray(fields.nerveSymptoms) ? fields.nerveSymptoms[0] : fields.nerveSymptoms) === 'true',
+      sex: (Array.isArray(fields.sex) ? fields.sex[0] : fields.sex) as 'male' | 'female' || 'male',
+      cardiovascularHistory: (Array.isArray(fields.cardiovascularHistory) ? fields.cardiovascularHistory[0] : fields.cardiovascularHistory) === 'true',
+      chronicKidneyDisease: (Array.isArray(fields.chronicKidneyDisease) ? fields.chronicKidneyDisease[0] : fields.chronicKidneyDisease) === 'true',
+      diabetes: (Array.isArray(fields.diabetes) ? fields.diabetes[0] : fields.diabetes) === 'true',
+      insuranceType: (Array.isArray(fields.insuranceType) ? fields.insuranceType[0] : fields.insuranceType) as 'private' | 'government' | 'none' | 'not-sure' || 'private',
       tcpaConsent: (Array.isArray(fields.tcpaConsent) ? fields.tcpaConsent[0] : fields.tcpaConsent) === 'true',
     };
 
@@ -379,6 +389,13 @@ export default async function handler(
       familyHistoryHighBP: formData.familyHistoryHighBP,
       familyHistoryDementia: formData.familyHistoryDementia,
       nerveSymptoms: formData.nerveSymptoms,
+      
+      // Additional health questions
+      sex: formData.sex,
+      cardiovascularHistory: formData.cardiovascularHistory,
+      chronicKidneyDisease: formData.chronicKidneyDisease,
+      diabetes: formData.diabetes,
+      insuranceType: formData.insuranceType,
       
       // TCPA Consent
       tcpaConsent: formData.tcpaConsent,

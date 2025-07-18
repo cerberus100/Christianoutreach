@@ -91,6 +91,14 @@ export default async function handler(
         familyHistoryHighBP: Math.random() > 0.5,
         familyHistoryDementia: Math.random() > 0.8,
         nerveSymptoms: Math.random() > 0.7,
+        
+        // Additional health questions
+        sex: ['male', 'female'][Math.floor(Math.random() * 2)] as 'male' | 'female',
+        cardiovascularHistory: Math.random() > 0.7,
+        chronicKidneyDisease: Math.random() > 0.9,
+        diabetes: Math.random() > 0.8,
+        insuranceType: ['private', 'government', 'none', 'not-sure'][Math.floor(Math.random() * 4)] as 'private' | 'government' | 'none' | 'not-sure',
+        
         tcpaConsent: true,
         phone: `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
         estimatedBMI: bmi,
