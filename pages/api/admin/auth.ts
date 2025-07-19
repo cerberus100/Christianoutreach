@@ -63,10 +63,11 @@ export default async function handler(
     }
 
     // Demo admin credentials (original demo credentials for production)
+    // Pre-computed hash for 'demo123' to avoid hashing on every request
     const demoAdmin = {
       id: 'demo-admin-001',
       email: 'admin@demo.org',
-      passwordHash: await bcrypt.hash('demo123', 12),
+      passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewjyQdWLEpUOuqPy', // demo123
       role: 'admin',
       name: 'Demo Administrator',
     };
