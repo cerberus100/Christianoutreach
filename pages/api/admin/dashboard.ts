@@ -48,6 +48,38 @@ export default async function handler(
 
     const submissions = (submissionsResult.Items || []) as HealthSubmission[];
 
+    // If no submissions, return empty dashboard with defaults
+    if (submissions.length === 0) {
+      const emptyDashboardStats: DashboardStats = {
+        totalSubmissions: 0,
+        todaySubmissions: 0,
+        weekSubmissions: 0,
+        monthSubmissions: 0,
+        totalOutreachLocations: 0,
+        averageRiskScore: 0,
+        conversionRate: 0,
+        riskDistribution: { low: 0, moderate: 0, high: 0, veryHigh: 0 },
+        ageDistribution: [
+          { range: '18-25', count: 0 },
+          { range: '26-35', count: 0 },
+          { range: '36-45', count: 0 },
+          { range: '46-55', count: 0 },
+          { range: '56-65', count: 0 },
+          { range: '65+', count: 0 },
+        ],
+        genderDistribution: { male: 0, female: 0, unknown: 0 },
+        bmiDistribution: { underweight: 0, normal: 0, overweight: 0, obese: 0 },
+        topLocations: [],
+        recentSubmissions: [],
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: emptyDashboardStats,
+        message: 'Dashboard loaded - no submissions yet',
+      });
+    }
+
     // Query all locations to get total count
     const locationsResult = await docClient.send(new ScanCommand({
       TableName: TABLES.CHURCHES,
@@ -95,21 +127,21 @@ export default async function handler(
       obese: submissions.filter(s => s.bmiCategory === 'Obese').length,
     };
 
-    // Gender distribution
+    // Gender distribution with safety checks
     const genderDistribution = {
-      male: submissions.filter(s => s.estimatedGender === 'Male' || s.sex === 'male').length,
-      female: submissions.filter(s => s.estimatedGender === 'Female' || s.sex === 'female').length,
-      unknown: submissions.filter(s => !s.estimatedGender && !s.sex).length,
+      male: submissions.filter(s => (s.estimatedGender === 'Male') || (s.sex === 'male')).length,
+      female: submissions.filter(s => (s.estimatedGender === 'Female') || (s.sex === 'female')).length,
+      unknown: submissions.filter(s => (!s.estimatedGender || s.estimatedGender === 'Unknown') && (!s.sex)).length,
     };
 
-    // Age distribution
+    // Age distribution with safety checks
     const ageDistribution = [
-      { range: '18-25', count: submissions.filter(s => s.estimatedAge && s.estimatedAge >= 18 && s.estimatedAge <= 25).length },
-      { range: '26-35', count: submissions.filter(s => s.estimatedAge && s.estimatedAge >= 26 && s.estimatedAge <= 35).length },
-      { range: '36-45', count: submissions.filter(s => s.estimatedAge && s.estimatedAge >= 36 && s.estimatedAge <= 45).length },
-      { range: '46-55', count: submissions.filter(s => s.estimatedAge && s.estimatedAge >= 46 && s.estimatedAge <= 55).length },
-      { range: '56-65', count: submissions.filter(s => s.estimatedAge && s.estimatedAge >= 56 && s.estimatedAge <= 65).length },
-      { range: '65+', count: submissions.filter(s => s.estimatedAge && s.estimatedAge > 65).length },
+      { range: '18-25', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge >= 18 && s.estimatedAge <= 25).length },
+      { range: '26-35', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge >= 26 && s.estimatedAge <= 35).length },
+      { range: '36-45', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge >= 36 && s.estimatedAge <= 45).length },
+      { range: '46-55', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge >= 46 && s.estimatedAge <= 55).length },
+      { range: '56-65', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge >= 56 && s.estimatedAge <= 65).length },
+      { range: '65+', count: submissions.filter(s => s.estimatedAge && typeof s.estimatedAge === 'number' && s.estimatedAge > 65).length },
     ];
 
     // Top performing locations
