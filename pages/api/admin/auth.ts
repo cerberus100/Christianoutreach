@@ -40,9 +40,9 @@ export default async function handler(
       });
     }
 
-    // Production admin credentials
-    const ADMIN_USERNAME = 'admin';
-    const ADMIN_PASSWORD = 'faith+1';
+    // Production admin credentials  
+    const ADMIN_USERNAME = 'admin@demo.org';
+    const ADMIN_PASSWORD = 'demo123';
     
     let user: AdminUser | null = null;
 
@@ -51,7 +51,7 @@ export default async function handler(
       if (password === ADMIN_PASSWORD) {
         user = {
           id: 'admin-prod-001',
-          email: 'admin',
+          email: 'admin@demo.org',
           hashedPassword: await bcrypt.hash(ADMIN_PASSWORD, 10),
           role: 'admin',
           firstName: 'System',
