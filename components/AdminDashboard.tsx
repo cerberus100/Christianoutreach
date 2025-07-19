@@ -171,10 +171,10 @@ export default function AdminDashboard({
               <div>
                 <p className="text-sm font-medium text-trust-600">Avg Risk Score</p>
                 <p className="text-3xl font-bold text-trust-900 mt-1">
-                  {stats.averageRiskScore.toFixed(1)}
+                  {(typeof stats.averageRiskScore === 'number' ? stats.averageRiskScore.toFixed(1) : '0.0')}
                 </p>
                 <div className="flex items-center mt-2">
-                  {stats.averageRiskScore > 4 ? (
+                  {(typeof stats.averageRiskScore === 'number' && stats.averageRiskScore > 4) ? (
                     <>
                       <ExclamationTriangleIcon className="w-4 h-4 text-orange-500 mr-1" />
                       <span className="text-sm text-orange-600 font-medium">High Risk</span>
@@ -416,9 +416,9 @@ export default function AdminDashboard({
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         <span className="font-medium text-trust-900 mr-2">
-                          {location.riskScore.toFixed(1)}
+                          {(typeof location.riskScore === 'number' ? location.riskScore.toFixed(1) : '0.0')}
                         </span>
-                        {location.riskScore > 4 ? (
+                        {(typeof location.riskScore === 'number' && location.riskScore > 4) ? (
                           <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
                             High Risk
                           </span>
@@ -484,7 +484,7 @@ export default function AdminDashboard({
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-trust-900">
-                        {submission.estimatedBMI?.toFixed(1) || 'N/A'}
+                        {(typeof submission.estimatedBMI === 'number' ? submission.estimatedBMI.toFixed(1) : 'N/A')}
                       </span>
                     </td>
                     <td className="py-3 px-4">
