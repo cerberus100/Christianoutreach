@@ -57,10 +57,9 @@ export default function SubmissionsPage() {
       } else {
         toast.error('Failed to load submissions');
       }
-    } catch (error) {
-      console.error('Fetch submissions error:', error);
-      toast.error('Failed to load submissions');
-    } finally {
+          } catch (error) {
+        toast.error('Failed to load submissions');
+      } finally {
       setIsLoading(false);
     }
   }, [router, filterLocation, filterRisk, filterStatus, searchTerm]);
@@ -80,9 +79,9 @@ export default function SubmissionsPage() {
           setLocations(result.data);
         }
       }
-    } catch (error) {
-      console.error('Fetch locations error:', error);
-    }
+          } catch (error) {
+        // Error fetching locations
+      }
   }, []);
 
   // Check authentication and fetch data
@@ -126,10 +125,9 @@ export default function SubmissionsPage() {
       } else {
         toast.error(result.error || 'Update failed');
       }
-    } catch (error) {
-      console.error('Update error:', error);
-      toast.error('Update failed');
-    }
+          } catch (error) {
+        toast.error('Update failed');
+      }
   };
 
   const exportSubmissions = async () => {
@@ -175,10 +173,9 @@ export default function SubmissionsPage() {
       } else {
         toast.error('Export failed');
       }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Export failed');
-    }
+          } catch (error) {
+        toast.error('Export failed');
+      }
   };
 
   // Filter submissions based on search and filters

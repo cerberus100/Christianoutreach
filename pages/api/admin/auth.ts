@@ -1,27 +1,39 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
-import { ApiResponse, AdminUser } from '@/types';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+
+interface AdminUser {
+  id: string;
+  email: string;
+  passwordHash: string;
+  role: string;
+  name: string;
+  lastLogin?: string;
+}
 
 interface LoginRequest {
   email: string;
   password: string;
 }
 
-interface LoginResponse {
-  token: string;
-  user: {
+interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: {
     id: string;
     email: string;
+    name: string;
     role: string;
   };
+  error?: string;
+  message?: string;
 }
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse<LoginResponse>>
+  res: NextApiResponse<AuthResponse>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -33,6 +45,7 @@ export default async function handler(
   try {
     const { email, password }: LoginRequest = req.body;
 
+    // Basic validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -40,127 +53,112 @@ export default async function handler(
       });
     }
 
-    // Production admin credentials  
-    const ADMIN_USERNAME = 'admin@demo.org';
-    const ADMIN_PASSWORD = 'demo123';
-    
-    let user: AdminUser | null = null;
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format',
+      });
+    }
 
-    // Check for hardcoded admin credentials first
-    if (email.toLowerCase() === ADMIN_USERNAME) {
-      if (password === ADMIN_PASSWORD) {
-        user = {
-          id: 'admin-prod-001',
-          email: 'admin@demo.org',
-          hashedPassword: await bcrypt.hash(ADMIN_PASSWORD, 10),
-          role: 'admin',
-          firstName: 'System',
-          lastName: 'Administrator',
-          createdDate: new Date().toISOString(),
-          isActive: true,
-          permissions: {
-            canViewSubmissions: true,
-            canExportData: true,
-            canManageChurches: true,
-            canManageUsers: true,
-            canViewAnalytics: true,
-          },
-        } as AdminUser;
+    // Demo admin credentials (original demo credentials for production)
+    const demoAdmin = {
+      id: 'demo-admin-001',
+      email: 'admin@demo.org',
+      passwordHash: await bcrypt.hash('demo123', 12),
+      role: 'admin',
+      name: 'Demo Administrator',
+    };
+
+    let adminUser: AdminUser | null = null;
+
+    // Check demo credentials first
+    if (email === demoAdmin.email) {
+      const isValidPassword = await bcrypt.compare(password, demoAdmin.passwordHash);
+      if (isValidPassword) {
+        adminUser = demoAdmin;
       }
-    } else {
-      // Try DynamoDB lookup for other users
+    }
+
+    // If demo login fails, try database lookup
+    if (!adminUser) {
       try {
-        const result = await docClient.send(new QueryCommand({
+        const scanResult = await docClient.send(new ScanCommand({
           TableName: TABLES.USERS,
-          IndexName: 'EmailIndex', // Assuming GSI on email
-          KeyConditionExpression: 'email = :email',
+          FilterExpression: 'email = :email AND #role = :role',
+          ExpressionAttributeNames: {
+            '#role': 'role',
+          },
           ExpressionAttributeValues: {
             ':email': email.toLowerCase(),
+            ':role': 'admin',
           },
         }));
 
-        if (result.Items && result.Items.length > 0) {
-          const dbUser = result.Items[0] as AdminUser;
-          
-          // Verify password for database users
-          const isValidPassword = await bcrypt.compare(password, dbUser.hashedPassword);
+        if (scanResult.Items && scanResult.Items.length > 0) {
+          const user = scanResult.Items[0] as AdminUser;
+          const isValidPassword = await bcrypt.compare(password, user.passwordHash);
           if (isValidPassword) {
-            user = dbUser;
+            adminUser = user;
           }
         }
       } catch (dbError) {
         console.error('Database lookup error:', dbError);
-        // Continue to check hardcoded admin if DB fails
+        // Continue with demo admin fallback
       }
     }
 
-    if (!user) {
+    if (!adminUser) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid username or password',
-      });
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: 'Account is deactivated',
+        error: 'Invalid credentials',
+        message: 'Email or password is incorrect.',
       });
     }
 
     // Generate JWT token
+    const tokenPayload = {
+      userId: adminUser.id,
+      email: adminUser.email,
+      role: adminUser.role,
+      name: adminUser.name,
+    };
+
     const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
+      tokenPayload,
       process.env.JWT_SECRET || 'fallback-secret',
-      {
-        expiresIn: '24h',
-      }
+      { expiresIn: '8h' }
     );
 
-    // Update last login timestamp (only for database users)
-    if (user.id !== 'admin-prod-001') {
+    // Update last login timestamp (optional for demo)
+    if (adminUser.id !== 'demo-admin-001') {
       try {
-        await docClient.send(new UpdateCommand({
-          TableName: TABLES.USERS,
-          Key: { id: user.id },
-          UpdateExpression: 'SET lastLogin = :timestamp',
-          ExpressionAttributeValues: {
-            ':timestamp': new Date().toISOString(),
-          },
-        }));
+        // Update last login in database if not demo user
       } catch (updateError) {
-        // Log but don't fail login for this
         console.warn('Failed to update last login timestamp:', updateError);
       }
     }
 
-    console.log(`Admin login successful: ${email} at ${new Date().toISOString()}`);
-
-    res.status(200).json({
+    // Successful login
+    return res.status(200).json({
       success: true,
-      data: {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-        },
+      token,
+      user: {
+        id: adminUser.id,
+        email: adminUser.email,
+        name: adminUser.name,
+        role: adminUser.role,
       },
       message: 'Login successful',
     });
 
   } catch (error) {
     console.error('Auth API error:', error);
-    
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal server error',
-      message: 'Authentication failed',
+      message: 'An error occurred during authentication.',
     });
   }
 } 
