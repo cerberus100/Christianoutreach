@@ -67,7 +67,7 @@ export default async function handler(
     const demoAdmin = {
       id: 'demo-admin-001',
       email: 'admin@demo.org',
-      passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewjyQdWLEpUOuqPy', // demo123
+      passwordHash: '$2a$12$VRpRUR4Fxj3B.ZKaeiMu8u8esw63i41xG1oqvViztI9Rg44Y8zDt6', // demo123
       role: 'admin',
       name: 'Demo Administrator',
     };
