@@ -33,7 +33,7 @@ export default function DashboardPage() {
       } else {
         toast.error('Failed to load dashboard data');
       }
-          } catch (error) {
+          } catch {
         toast.error('Failed to load dashboard data');
       } finally {
       setIsLoading(false);
@@ -92,7 +92,7 @@ export default function DashboardPage() {
       } else {
         toast.error('Export failed');
       }
-          } catch (error) {
+          } catch {
         toast.error('Export failed');
       }
   };

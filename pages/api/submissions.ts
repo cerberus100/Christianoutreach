@@ -7,13 +7,12 @@ import formidable from 'formidable';
 import fs from 'fs';
 import { docClient, s3Client, TABLES, S3_BUCKET } from '@/lib/aws-config';
 import { aryaAI } from '@/lib/arya-ai';
-import { validateUploadedFile, SELFIE_VALIDATION_OPTIONS, checkUploadRateLimit, cleanupRateLimitEntries } from '@/lib/file-validation';
+import { validateUploadedFile, SELFIE_VALIDATION_OPTIONS, checkUploadRateLimit } from '@/lib/file-validation';
 import { SMSService } from '@/lib/sms-service';
 import { 
   extractNetworkInfo, 
   parseUserAgent, 
   generateSubmissionFingerprint,
-  detectFraudIndicators,
   extractIpAddress
 } from '@/lib/device-tracker';
 import { HealthSubmission, ApiResponse, DeviceInfo, NetworkInfo } from '@/types';
@@ -31,24 +30,7 @@ export const config = {
   },
 };
 
-interface FormSubmissionData {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  churchId: string;
-  phone: string;
-  email?: string;
-  familyHistoryDiabetes: boolean;
-  familyHistoryHighBP: boolean;
-  familyHistoryDementia: boolean;
-  nerveSymptoms: boolean;
-  sex: 'male' | 'female';
-  cardiovascularHistory: boolean;
-  chronicKidneyDisease: boolean;
-  diabetes: boolean;
-  insuranceType: 'private' | 'government' | 'none' | 'not-sure';
-  tcpaConsent: boolean;
-}
+
 
 export default async function handler(
   req: NextApiRequest,
@@ -295,12 +277,12 @@ export default async function handler(
       email: formData.email,
       
       // AI analysis results
-      estimatedBMI: aiAnalysis?.bmi?.value || null,
-      bmiCategory: aiAnalysis?.bmi?.category || null,
-      estimatedAge: aiAnalysis?.age?.estimated || null,
-      estimatedGender: aiAnalysis?.gender?.predicted || null,
-      healthRiskLevel: healthRisk?.riskLevel || null,
-      healthRiskScore: healthRisk?.riskScore || null,
+      estimatedBMI: aiAnalysis?.bmi?.value || undefined,
+      bmiCategory: aiAnalysis?.bmi?.category || undefined,
+      estimatedAge: aiAnalysis?.age?.estimated || undefined,
+      estimatedGender: aiAnalysis?.gender?.predicted || undefined,
+      healthRiskLevel: healthRisk?.riskLevel || undefined,
+      healthRiskScore: healthRisk?.riskScore || undefined,
       recommendations: healthRisk?.recommendations || [],
       
       // Follow-up status

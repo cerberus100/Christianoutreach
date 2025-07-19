@@ -53,7 +53,7 @@ export default function AdminLogin() {
       } else {
         toast.error(result.error || 'Login failed');
       }
-          } catch (error) {
+          } catch {
         toast.error('An error occurred during login');
       } finally {
       setIsLoading(false);
