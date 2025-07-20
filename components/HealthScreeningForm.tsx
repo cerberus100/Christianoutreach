@@ -250,7 +250,7 @@ export default function HealthScreeningForm({
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: {
-          'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+          'x-health-form': 'submission', // CSRF protection
         },
         body: formData,
       });
