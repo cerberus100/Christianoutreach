@@ -99,6 +99,23 @@ export default function SubmissionsPage() {
     ]);
   }, [router, fetchSubmissions, fetchLocations]);
 
+  // Handle Escape key to close modals
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (selectedSubmission) {
+          setSelectedSubmission(null);
+          setShowGeneticPortfolio(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [selectedSubmission]);
+
   const updateFollowUpStatus = async (submissionId: string, status: string, notes?: string) => {
     const token = localStorage.getItem('adminToken');
     if (!token) return;
@@ -482,19 +499,36 @@ export default function SubmissionsPage() {
 
         {/* Submission Details Modal */}
         {selectedSubmission && !showGeneticPortfolio && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-90vh overflow-y-auto">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setSelectedSubmission(null)}
+          >
+            <div 
+              className="bg-white rounded-lg max-w-2xl w-full max-h-90vh overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-trust-900">
                     Submission Details
                   </h3>
-                  <button
-                    onClick={() => setShowGeneticPortfolio(true)}
-                    className="text-trust-400 hover:text-trust-600"
-                  >
-                    🏥 Medical Referrals
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setShowGeneticPortfolio(true)}
+                      className="text-trust-400 hover:text-trust-600 text-sm"
+                    >
+                      🏥 Medical Referrals
+                    </button>
+                    <button
+                      onClick={() => setSelectedSubmission(null)}
+                      className="text-trust-400 hover:text-trust-900 p-1"
+                      title="Close"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -666,12 +700,18 @@ export default function SubmissionsPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={() => setSelectedSubmission(null)}
+                    className="btn-secondary"
+                  >
+                    Close
+                  </button>
                   <button
                     onClick={() => setShowGeneticPortfolio(true)}
                     className="btn-primary"
                   >
-                    Medical Referrals
+                    View Medical Referrals
                   </button>
                 </div>
               </div>
@@ -681,8 +721,17 @@ export default function SubmissionsPage() {
 
         {/* Genetic Testing Portfolio Modal */}
         {selectedSubmission && showGeneticPortfolio && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+          <div 
+            className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+            onClick={() => {
+              setSelectedSubmission(null);
+              setShowGeneticPortfolio(false);
+            }}
+          >
+            <div 
+              className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-trust-900">
                   Medical Recommendations - {selectedSubmission.firstName} {selectedSubmission.lastName}
