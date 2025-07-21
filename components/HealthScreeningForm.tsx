@@ -61,16 +61,8 @@ export default function HealthScreeningForm({
       phone: '',
       email: '',
       selfie: null,
-      familyHistoryDiabetes: false,
-      familyHistoryHighBP: false,
-      familyHistoryDementia: false,
-      nerveSymptoms: false,
-      sex: 'male',
-      cardiovascularHistory: false,
-      chronicKidneyDisease: false,
-      diabetes: false,
-      insuranceType: 'private',
-      tcpaConsent: false,
+      // Health questions require explicit user selection - no defaults
+      tcpaConsent: false, // Explicit consent required
     },
   });
 
@@ -632,7 +624,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryDiabetes')}
+                          {...register('familyHistoryDiabetes', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -641,13 +633,16 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryDiabetes')}
+                          {...register('familyHistoryDiabetes', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
                         <span className="ml-2">No</span>
                       </label>
                     </div>
+                    {errors.familyHistoryDiabetes && (
+                      <p className="form-error mt-2">{errors.familyHistoryDiabetes.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -663,7 +658,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryHighBP')}
+                          {...register('familyHistoryHighBP', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -672,13 +667,16 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryHighBP')}
+                          {...register('familyHistoryHighBP', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
                         <span className="ml-2">No</span>
                       </label>
                     </div>
+                    {errors.familyHistoryHighBP && (
+                      <p className="form-error mt-2">{errors.familyHistoryHighBP.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -693,7 +691,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryDementia')}
+                          {...register('familyHistoryDementia', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -702,13 +700,16 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('familyHistoryDementia')}
+                          {...register('familyHistoryDementia', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
                         <span className="ml-2">No</span>
                       </label>
                     </div>
+                    {errors.familyHistoryDementia && (
+                      <p className="form-error mt-2">{errors.familyHistoryDementia.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -723,7 +724,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('nerveSymptoms')}
+                          {...register('nerveSymptoms', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -732,13 +733,16 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('nerveSymptoms')}
+                          {...register('nerveSymptoms', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
                         <span className="ml-2">No</span>
                       </label>
                     </div>
+                    {errors.nerveSymptoms && (
+                      <p className="form-error mt-2">{errors.nerveSymptoms.message}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -826,7 +830,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('chronicKidneyDisease', { required: true })}
+                          {...register('chronicKidneyDisease', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -835,7 +839,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('chronicKidneyDisease', { required: true })}
+                          {...register('chronicKidneyDisease', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
@@ -856,7 +860,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('diabetes', { required: true })}
+                          {...register('diabetes', { required: 'Please select an answer' })}
                           value="true"
                           className="radio-custom"
                         />
@@ -865,7 +869,7 @@ export default function HealthScreeningForm({
                       <label className="flex items-center">
                         <input
                           type="radio"
-                          {...register('diabetes', { required: true })}
+                          {...register('diabetes', { required: 'Please select an answer' })}
                           value="false"
                           className="radio-custom"
                         />
@@ -886,7 +890,7 @@ export default function HealthScreeningForm({
                        <label className="flex items-center">
                          <input
                            type="radio"
-                           {...register('insuranceType', { required: true })}
+                           {...register('insuranceType', { required: 'Please select an answer' })}
                            value="private"
                            className="radio-custom"
                          />
@@ -895,7 +899,7 @@ export default function HealthScreeningForm({
                        <label className="flex items-center">
                          <input
                            type="radio"
-                           {...register('insuranceType', { required: true })}
+                           {...register('insuranceType', { required: 'Please select an answer' })}
                            value="government"
                            className="radio-custom"
                          />
@@ -904,7 +908,7 @@ export default function HealthScreeningForm({
                        <label className="flex items-center">
                          <input
                            type="radio"
-                           {...register('insuranceType', { required: true })}
+                           {...register('insuranceType', { required: 'Please select an answer' })}
                            value="none"
                            className="radio-custom"
                          />
@@ -913,7 +917,7 @@ export default function HealthScreeningForm({
                        <label className="flex items-center">
                          <input
                            type="radio"
-                           {...register('insuranceType', { required: true })}
+                           {...register('insuranceType', { required: 'Please select an answer' })}
                            value="not-sure"
                            className="radio-custom"
                          />
