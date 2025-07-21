@@ -364,6 +364,7 @@ export default function SubmissionsPage() {
                     <thead>
                       <tr className="border-b border-trust-200">
                         <th className="text-left py-3 px-4 font-medium text-trust-900">Participant</th>
+                        <th className="text-left py-3 px-4 font-medium text-trust-900">Photo</th>
                         <th className="text-left py-3 px-4 font-medium text-trust-900">Location</th>
                         <th className="text-left py-3 px-4 font-medium text-trust-900">Health Risk</th>
                         <th className="text-left py-3 px-4 font-medium text-trust-900">BMI</th>
@@ -388,6 +389,25 @@ export default function SubmissionsPage() {
                               )}
                               {submission.phone && (
                                 <div className="text-sm text-trust-500">{submission.phone}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-center">
+                              {submission.selfieUrl ? (
+                                <img
+                                  src={submission.selfieUrl}
+                                  alt={`${submission.firstName} ${submission.lastName}`}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-trust-200 cursor-pointer hover:border-primary-400 transition-colors"
+                                  onClick={() => setSelectedSubmission(submission)}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAxNkMyMC42ODYzIDE2IDE4IDE4LjY4NjMgMTggMjJDMTggMjUuMzEzNyAyMC42ODYzIDI4IDI0IDI4QzI3LjMxMzcgMjggMzAgMjUuMzEzNyAzMCAyMkMzMCAxOC42ODYzIDI3LjMxMzcgMTYgMjQgMTZaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik0xNiAzNkMxNiAzMC40NzcxIDE5LjU4MTcgMjYgMjQgMjZDMjguNDE4MyAyNiAzMiAzMC40NzcxIDMyIDM2SDM2VjQwSDE2VjM2WiIgZmlsbD0iIzk5OTk5OSIvPgo8L3N2Zz4K';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-trust-100 border-2 border-trust-200 flex items-center justify-center">
+                                  <span className="text-trust-400 text-xs">No Photo</span>
+                                </div>
                               )}
                             </div>
                           </td>
@@ -478,6 +498,30 @@ export default function SubmissionsPage() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Photo Section */}
+                  <div className="flex justify-center mb-6">
+                    {selectedSubmission.selfieUrl ? (
+                      <div className="text-center">
+                        <img
+                          src={selectedSubmission.selfieUrl}
+                          alt={`${selectedSubmission.firstName} ${selectedSubmission.lastName}`}
+                          className="w-32 h-32 rounded-lg object-cover border-4 border-trust-200 shadow-lg mx-auto"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02NCA0MkM1NS4xNjM0IDQyIDQ4IDQ5LjE2MzQgNDggNThDNDggNjYuODM2NiA1NS4xNjM0IDc0IDY0IDc0QzcyLjgzNjYgNzQgODAgNjYuODM2NiA4MCA1OEM4MCA0OS4xNjM0IDcyLjgzNjYgNDIgNjQgNDJaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik00MiA5NkM0MiA4MS4yNzQgNTEuMTU0NSA2OCA2NCA2OEM3Ni44NDU1IDY4IDg2IDgxLjI3NCA4NiA5Nkg5NlYxMDZINDJWOTZaIiBmaWxsPSIjOTk5OTk5Ii8+Cjwvc3ZnPgo=';
+                          }}
+                        />
+                        <p className="text-xs text-trust-500 mt-2">Participant Photo</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="w-32 h-32 rounded-lg bg-trust-100 border-4 border-trust-200 flex items-center justify-center mx-auto">
+                          <span className="text-trust-400">No Photo Available</span>
+                        </div>
+                        <p className="text-xs text-trust-500 mt-2">No photo uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-trust-700">Name</label>
