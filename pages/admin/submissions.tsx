@@ -418,12 +418,19 @@ export default function SubmissionsPage() {
                                   className="w-12 h-12 rounded-full object-cover border-2 border-trust-200 cursor-pointer hover:border-primary-400 transition-colors"
                                   onClick={() => setSelectedSubmission(submission)}
                                   onError={(e) => {
+                                    console.error('Thumbnail failed to load:', submission.selfieUrl);
                                     (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAxNkMyMC42ODYzIDE2IDE4IDE4LjY4NjMgMTggMjJDMTggMjUuMzEzNyAyMC42ODYzIDI4IDI0IDI4QzI3LjMxMzcgMjggMzAgMjUuMzEzNyAzMCAyMkMzMCAxOC42ODYzIDI3LjMxMzcgMTYgMjQgMTZaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik0xNiAzNkMxNiAzMC40NzcxIDE5LjU4MTcgMjYgMjQgMjZDMjguNDE4MyAyNiAzMiAzMC40NzcxIDMyIDM2SDM2VjQwSDE2VjM2WiIgZmlsbD0iIzk5OTk5OSIvPgo8L3N2Zz4K';
+                                  }}
+                                  onLoad={() => {
+                                    console.log('Thumbnail loaded successfully:', submission.selfieUrl);
                                   }}
                                 />
                               ) : (
-                                <div className="w-12 h-12 rounded-full bg-trust-100 border-2 border-trust-200 flex items-center justify-center">
-                                  <span className="text-trust-400 text-xs">No Photo</span>
+                                <div className="w-12 h-12 rounded-full bg-trust-100 border-2 border-trust-200 flex items-center justify-center cursor-pointer hover:border-primary-400 transition-colors"
+                                     onClick={() => setSelectedSubmission(submission)}>
+                                  <svg className="w-6 h-6 text-trust-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                  </svg>
                                 </div>
                               )}
                             </div>
@@ -500,29 +507,30 @@ export default function SubmissionsPage() {
         {/* Submission Details Modal */}
         {selectedSubmission && !showGeneticPortfolio && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50"
             onClick={() => setSelectedSubmission(null)}
           >
             <div 
-              className="bg-white rounded-lg max-w-2xl w-full max-h-90vh overflow-y-auto"
+              className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-trust-900">
+              {/* Enhanced Header with Prominent Close Button */}
+              <div className="sticky top-0 bg-white border-b border-trust-200 p-6 rounded-t-lg z-10">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-trust-900">
                     Submission Details
                   </h3>
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => setShowGeneticPortfolio(true)}
-                      className="text-trust-400 hover:text-trust-600 text-sm"
+                      className="px-4 py-2 bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-lg text-sm font-medium transition-colors"
                     >
                       🏥 Medical Referrals
                     </button>
                     <button
                       onClick={() => setSelectedSubmission(null)}
-                      className="text-trust-400 hover:text-trust-900 p-1"
-                      title="Close"
+                      className="p-2 text-trust-400 hover:text-trust-900 hover:bg-trust-100 rounded-lg transition-colors"
+                      title="Close (ESC)"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -530,189 +538,248 @@ export default function SubmissionsPage() {
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  {/* Photo Section */}
-                  <div className="flex justify-center mb-6">
+              <div className="p-6">
+                <div className="space-y-6">
+                  {/* Enhanced Photo Section */}
+                  <div className="flex justify-center">
                     {selectedSubmission.selfieUrl ? (
                       <div className="text-center">
-                        <img
-                          src={selectedSubmission.selfieUrl}
-                          alt={`${selectedSubmission.firstName} ${selectedSubmission.lastName}`}
-                          className="w-32 h-32 rounded-lg object-cover border-4 border-trust-200 shadow-lg mx-auto"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02NCA0MkM1NS4xNjM0IDQyIDQ4IDQ5LjE2MzQgNDggNThDNDggNjYuODM2NiA1NS4xNjM0IDc0IDY0IDc0QzcyLjgzNjYgNzQgODAgNjYuODM2NiA4MCA1OEM4MCA0OS4xNjM0IDcyLjgzNjYgNDIgNjQgNDJaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik00MiA5NkM0MiA4MS4yNzQgNTEuMTU0NSA2OCA2NCA2OEM3Ni44NDU1IDY4IDg2IDgxLjI3NCA4NiA5Nkg5NlYxMDZINDJWOTZaIiBmaWxsPSIjOTk5OTk5Ii8+Cjwvc3ZnPgo=';
-                          }}
-                        />
-                        <p className="text-xs text-trust-500 mt-2">Participant Photo</p>
+                        <div className="relative group">
+                          <img
+                            src={selectedSubmission.selfieUrl}
+                            alt={`${selectedSubmission.firstName} ${selectedSubmission.lastName}`}
+                            className="w-40 h-40 rounded-xl object-cover border-4 border-trust-200 shadow-lg mx-auto cursor-pointer hover:border-primary-400 transition-all duration-300 group-hover:shadow-xl"
+                            onError={(e) => {
+                              console.error('Failed to load image:', selectedSubmission.selfieUrl);
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCIgdmlld0JveD0iMCAwIDE2MCAxNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iMTYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04MCA1MkM2OC45NTQzIDUyIDYwIDYwLjk1NDMgNjAgNzJDNjAgODMuMDQ1NyA2OC45NTQzIDkyIDgwIDkyQzkxLjA0NTcgOTIgMTAwIDgzLjA0NTcgMTAwIDcyQzEwMCA2MC45NTQzIDkxLjA0NTcgNTIgODAgNTJaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik01MiAxMjBDNTIgMTAxLjkwOSA2My42NDY4IDg2IDgwIDg2Qzk2LjM1MzIgODYgMTA4IDEwMS45MDkgMTA4IDEyMEgxMjBWMTMySDUyVjEyMFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+Cg==';
+                              target.parentElement?.parentElement?.classList.add('error-state');
+                            }}
+                            onLoad={() => {
+                              console.log('Image loaded successfully:', selectedSubmission.selfieUrl);
+                            }}
+                            onClick={() => {
+                              // Click to view full size in new tab
+                              window.open(selectedSubmission.selfieUrl, '_blank');
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-300 flex items-center justify-center">
+                            <span className="text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              Click to enlarge
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-trust-500 mt-3">Participant Photo</p>
+                        <p className="text-xs text-trust-400 mt-1">Click image to view full size</p>
                       </div>
                     ) : (
                       <div className="text-center">
-                        <div className="w-32 h-32 rounded-lg bg-trust-100 border-4 border-trust-200 flex items-center justify-center mx-auto">
-                          <span className="text-trust-400">No Photo Available</span>
+                        <div className="w-40 h-40 rounded-xl bg-trust-100 border-4 border-trust-200 flex items-center justify-center mx-auto">
+                          <div className="text-center">
+                            <svg className="w-12 h-12 text-trust-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span className="text-trust-400 text-sm font-medium">No Photo Available</span>
+                          </div>
                         </div>
-                        <p className="text-xs text-trust-500 mt-2">No photo uploaded</p>
+                        <p className="text-xs text-trust-500 mt-3">No photo uploaded</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Name</label>
-                      <p className="text-trust-900">{selectedSubmission.firstName} {selectedSubmission.lastName}</p>
+                  {/* Personal Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Full Name</label>
+                        <p className="text-trust-900 font-medium text-lg">{selectedSubmission.firstName} {selectedSubmission.lastName}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Date of Birth</label>
+                        <p className="text-trust-900">{selectedSubmission.dateOfBirth}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Email</label>
+                        <p className="text-trust-900">{selectedSubmission.email || 'Not provided'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Date of Birth</label>
-                      <p className="text-trust-900">{selectedSubmission.dateOfBirth}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Email</label>
-                      <p className="text-trust-900">{selectedSubmission.email || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Phone</label>
-                      <p className="text-trust-900">{selectedSubmission.phone || 'Not provided'}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Estimated BMI</label>
-                      <p className="text-trust-900">
-                        {selectedSubmission.estimatedBMI && !isNaN(Number(selectedSubmission.estimatedBMI))
-                          ? Number(selectedSubmission.estimatedBMI).toFixed(1)
-                          : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Estimated Age</label>
-                      <p className="text-trust-900">{selectedSubmission.estimatedAge || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-trust-700">Gender</label>
-                      <p className="text-trust-900">{selectedSubmission.estimatedGender || 'N/A'}</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Phone</label>
+                        <p className="text-trust-900">{selectedSubmission.phone || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Location</label>
+                        <p className="text-trust-900">{locationNameMap.get(selectedSubmission.churchId) || selectedSubmission.churchId}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Submission Date</label>
+                        <p className="text-trust-900">{format(new Date(selectedSubmission.submissionDate), 'MMM dd, yyyy \'at\' h:mm a')}</p>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Health Metrics */}
+                  <div className="bg-health-50 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-trust-900 mb-3">Health Metrics</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Estimated BMI</label>
+                        <p className="text-2xl font-bold text-trust-900">
+                          {selectedSubmission.estimatedBMI && !isNaN(Number(selectedSubmission.estimatedBMI))
+                            ? Number(selectedSubmission.estimatedBMI).toFixed(1)
+                            : 'N/A'}
+                        </p>
+                        {selectedSubmission.bmiCategory && (
+                          <p className="text-sm text-trust-600">{selectedSubmission.bmiCategory}</p>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Estimated Age</label>
+                        <p className="text-2xl font-bold text-trust-900">{selectedSubmission.estimatedAge || 'N/A'}</p>
+                      </div>
+                      <div className="text-center">
+                        <label className="text-sm font-medium text-trust-700 block mb-1">Gender</label>
+                        <p className="text-2xl font-bold text-trust-900">{selectedSubmission.estimatedGender || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Health Responses */}
                   <div>
-                    <label className="text-sm font-medium text-trust-700">Health Responses</label>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex justify-between">
-                        <span>Family History - Diabetes:</span>
-                        <span className={selectedSubmission.familyHistoryDiabetes ? 'text-orange-600' : 'text-health-600'}>
+                    <h4 className="text-lg font-medium text-trust-900 mb-3">Health Responses</h4>
+                    <div className="bg-white border border-trust-200 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Family History - Diabetes:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.familyHistoryDiabetes ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
                           {selectedSubmission.familyHistoryDiabetes ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Family History - High Blood Pressure:</span>
-                        <span className={selectedSubmission.familyHistoryHighBP ? 'text-orange-600' : 'text-health-600'}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Family History - High Blood Pressure:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.familyHistoryHighBP ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
                           {selectedSubmission.familyHistoryHighBP ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Family History - Dementia:</span>
-                        <span className={selectedSubmission.familyHistoryDementia ? 'text-orange-600' : 'text-health-600'}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Family History - Dementia:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.familyHistoryDementia ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
                           {selectedSubmission.familyHistoryDementia ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Nerve Symptoms:</span>
-                        <span className={selectedSubmission.nerveSymptoms ? 'text-orange-600' : 'text-health-600'}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Nerve Symptoms:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.nerveSymptoms ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
                           {selectedSubmission.nerveSymptoms ? 'Yes' : 'No'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {selectedSubmission.recommendations && (
+                  {/* AI Recommendations */}
+                  {selectedSubmission.recommendations && selectedSubmission.recommendations.length > 0 && (
                     <div>
-                      <label className="text-sm font-medium text-trust-700">AI Recommendations</label>
-                      <ul className="mt-2 space-y-1">
-                        {selectedSubmission.recommendations.map((rec, index) => (
-                          <li key={index} className="text-sm text-trust-600">• {rec}</li>
-                        ))}
-                      </ul>
+                      <h4 className="text-lg font-medium text-trust-900 mb-3">AI Recommendations</h4>
+                      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                        <ul className="space-y-2">
+                          {selectedSubmission.recommendations.map((rec, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-primary-600 mr-2">•</span>
+                              <span className="text-trust-700">{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   )}
 
                   {/* Device and Network Information */}
-                  <div className="border-t border-trust-200 pt-4">
-                    <label className="text-sm font-medium text-trust-700">Device & Network Information</label>
-                    <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-trust-600">IP Address:</span>
-                        <span className="ml-2 text-trust-900 font-mono">
-                          {selectedSubmission.networkInfo?.ipAddress || 'Unknown'}
-                        </span>
+                  <div className="border-t border-trust-200 pt-6">
+                    <h4 className="text-lg font-medium text-trust-900 mb-3">Device & Network Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">IP Address:</span>
+                          <span className="text-trust-900 font-mono">
+                            {selectedSubmission.networkInfo?.ipAddress || 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Device Type:</span>
+                          <span className="text-trust-900">
+                            {selectedSubmission.deviceInfo?.device?.type || 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Browser:</span>
+                          <span className="text-trust-900">
+                            {selectedSubmission.deviceInfo?.browser ? 
+                              `${selectedSubmission.deviceInfo.browser.name} ${selectedSubmission.deviceInfo.browser.version}` : 
+                              'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Operating System:</span>
+                          <span className="text-trust-900">
+                            {selectedSubmission.deviceInfo?.os ? 
+                              `${selectedSubmission.deviceInfo.os.name} ${selectedSubmission.deviceInfo.os.version}` : 
+                              'Unknown'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-trust-600">Device Type:</span>
-                        <span className="ml-2 text-trust-900">
-                          {selectedSubmission.deviceInfo?.device?.type || 'Unknown'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Browser:</span>
-                        <span className="ml-2 text-trust-900">
-                          {selectedSubmission.deviceInfo?.browser ? 
-                            `${selectedSubmission.deviceInfo.browser.name} ${selectedSubmission.deviceInfo.browser.version}` : 
-                            'Unknown'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Operating System:</span>
-                        <span className="ml-2 text-trust-900">
-                          {selectedSubmission.deviceInfo?.os ? 
-                            `${selectedSubmission.deviceInfo.os.name} ${selectedSubmission.deviceInfo.os.version}` : 
-                            'Unknown'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Screen Resolution:</span>
-                        <span className="ml-2 text-trust-900">
-                          {selectedSubmission.deviceInfo?.screen ? 
-                            `${selectedSubmission.deviceInfo.screen.width}x${selectedSubmission.deviceInfo.screen.height}` : 
-                            'Unknown'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Timezone:</span>
-                        <span className="ml-2 text-trust-900">
-                          {selectedSubmission.deviceInfo?.timezone || 'Unknown'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Fingerprint:</span>
-                        <span className="ml-2 text-trust-900 font-mono text-xs">
-                          {selectedSubmission.submissionFingerprint || 'N/A'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-trust-600">Referrer:</span>
-                        <span className="ml-2 text-trust-900 text-xs">
-                          {selectedSubmission.networkInfo?.referrer || 'Direct'}
-                        </span>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Screen Resolution:</span>
+                          <span className="text-trust-900">
+                            {selectedSubmission.deviceInfo?.screen ? 
+                              `${selectedSubmission.deviceInfo.screen.width}x${selectedSubmission.deviceInfo.screen.height}` : 
+                              'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Timezone:</span>
+                          <span className="text-trust-900">
+                            {selectedSubmission.deviceInfo?.timezone || 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Referrer:</span>
+                          <span className="text-trust-900 text-xs">
+                            {selectedSubmission.networkInfo?.referrer || 'Direct'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-trust-600 font-medium">Fingerprint:</span>
+                          <span className="text-trust-900 font-mono text-xs">
+                            {selectedSubmission.submissionFingerprint?.slice(0, 12) || 'N/A'}...
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button
-                    onClick={() => setSelectedSubmission(null)}
-                    className="btn-secondary"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => setShowGeneticPortfolio(true)}
-                    className="btn-primary"
-                  >
-                    View Medical Referrals
-                  </button>
+                {/* Enhanced Footer with Multiple Close Options */}
+                <div className="mt-8 pt-6 border-t border-trust-200 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                  <div className="text-sm text-trust-500">
+                    Press <kbd className="px-2 py-1 bg-trust-100 rounded text-xs">ESC</kbd> or click outside to close
+                  </div>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setSelectedSubmission(null)}
+                      className="px-6 py-2 bg-trust-100 text-trust-700 hover:bg-trust-200 rounded-lg font-medium transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => setShowGeneticPortfolio(true)}
+                      className="px-6 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-lg font-medium transition-colors"
+                    >
+                      View Medical Referrals
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -722,7 +789,7 @@ export default function SubmissionsPage() {
         {/* Genetic Testing Portfolio Modal */}
         {selectedSubmission && showGeneticPortfolio && (
           <div 
-            className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50"
             onClick={() => {
               setSelectedSubmission(null);
               setShowGeneticPortfolio(false);
@@ -732,53 +799,81 @@ export default function SubmissionsPage() {
               className="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-trust-900">
-                  Medical Recommendations - {selectedSubmission.firstName} {selectedSubmission.lastName}
+              {/* Enhanced Header with Prominent Close Buttons */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-trust-900">
+                  🏥 Medical Recommendations - {selectedSubmission.firstName} {selectedSubmission.lastName}
                 </h3>
-                <div className="flex space-x-2">
+                <div className="flex space-x-3">
                   <button
                     onClick={() => setShowGeneticPortfolio(false)}
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                    className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-colors"
                   >
-                    Back to Details
+                    ← Back to Details
                   </button>
                   <button
                     onClick={() => {
                       setSelectedSubmission(null);
                       setShowGeneticPortfolio(false);
                     }}
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                    className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Close (ESC)"
                   >
-                    Close
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-                             <HealthAnalysisPortfolio 
-                 submission={{
-                   id: selectedSubmission.id,
-                   name: `${selectedSubmission.firstName} ${selectedSubmission.lastName}`,
-                   age: 0, // Default age since not available in current data
-                   gender: 'Unknown', // Default gender since not available
-                   healthRiskScore: selectedSubmission.healthRiskScore || 0,
-                   estimatedBMI: selectedSubmission.estimatedBMI || 0,
-                   bmiCategory: selectedSubmission.bmiCategory || 'Unknown',
-                   familyHistory: {
-                     diabetes: false, // Default values - these would come from form data
-                     hypertension: false,
-                     dementia: false,
-                     heartDisease: false
-                   },
-                   symptoms: {
-                     nervePain: false, // Default values - these would come from form data
-                     memoryIssues: false,
-                     balanceProblems: false,
-                     visionChanges: false
-                   }
-                 }}
-                 onRecommendationUpdate={handleRecommendationUpdate}
-               />
+              <HealthAnalysisPortfolio 
+                submission={{
+                  id: selectedSubmission.id,
+                  name: `${selectedSubmission.firstName} ${selectedSubmission.lastName}`,
+                  age: selectedSubmission.estimatedAge || 0,
+                  gender: selectedSubmission.estimatedGender || 'Unknown',
+                  healthRiskScore: selectedSubmission.healthRiskScore || 0,
+                  estimatedBMI: selectedSubmission.estimatedBMI || 0,
+                  bmiCategory: selectedSubmission.bmiCategory || 'Unknown',
+                  familyHistory: {
+                    diabetes: selectedSubmission.familyHistoryDiabetes || false,
+                    hypertension: selectedSubmission.familyHistoryHighBP || false,
+                    dementia: selectedSubmission.familyHistoryDementia || false,
+                    heartDisease: selectedSubmission.cardiovascularHistory || false
+                  },
+                  symptoms: {
+                    nervePain: selectedSubmission.nerveSymptoms || false,
+                    memoryIssues: false, // Not currently captured in form
+                    balanceProblems: false, // Not currently captured in form
+                    visionChanges: false // Not currently captured in form
+                  }
+                }}
+                onRecommendationUpdate={handleRecommendationUpdate}
+              />
+
+              {/* Enhanced Footer */}
+              <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                <div className="text-sm text-gray-500">
+                  Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">ESC</kbd> or click outside to close
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowGeneticPortfolio(false)}
+                    className="px-6 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                  >
+                    ← Back to Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSubmission(null);
+                      setShowGeneticPortfolio(false);
+                    }}
+                    className="px-6 py-2 bg-gray-600 text-white hover:bg-gray-700 rounded-lg font-medium transition-colors"
+                  >
+                    Close All
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
