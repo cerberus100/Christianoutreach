@@ -7,11 +7,13 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    domains: ['localhost', 's3.amazonaws.com', '*.s3.amazonaws.com'],
+    domains: ['localhost'],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Allow unoptimized images for S3 signed URLs
+    unoptimized: false,
   },
 
   // Environment variables
@@ -26,6 +28,7 @@ const nextConfig = {
     APP_DYNAMODB_CHURCHES_TABLE: process.env.APP_DYNAMODB_CHURCHES_TABLE,
     APP_DYNAMODB_USERS_TABLE: process.env.APP_DYNAMODB_USERS_TABLE,
     APP_S3_BUCKET_NAME: process.env.APP_S3_BUCKET_NAME,
+    AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
   },
 
   // Experimental features

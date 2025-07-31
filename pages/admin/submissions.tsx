@@ -6,6 +6,7 @@ import {
   DocumentArrowDownIcon,
   EyeIcon,
   UserIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { HealthSubmission, OutreachLocation } from '@/types';
 import { format } from 'date-fns';
@@ -23,6 +24,9 @@ export default function SubmissionsPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<HealthSubmission | null>(null);
   const [showGeneticPortfolio, setShowGeneticPortfolio] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
+  const [loadingUrls, setLoadingUrls] = useState<Set<string>>(new Set());
+  const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false);
 
   // Create location name mapping
   const locationNameMap = new Map();
@@ -83,6 +87,125 @@ export default function SubmissionsPage() {
       // Error fetching locations
     }
   }, []);
+
+  const getSignedPhotoUrl = useCallback(async (photoPath: string): Promise<string | null> => {
+    // Check if we already have this URL cached
+    if (signedUrls.has(photoPath)) {
+      return signedUrls.get(photoPath)!;
+    }
+
+    // Check if we're already loading this URL
+    if (loadingUrls.has(photoPath)) {
+      return null;
+    }
+
+    try {
+      setLoadingUrls(prev => new Set(prev).add(photoPath));
+
+      const token = localStorage.getItem('adminToken');
+      if (!token) return null;
+
+      const response = await fetch('/api/admin/photo-url', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ photoPath }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setSignedUrls(prev => new Map(prev).set(photoPath, result.data.signedUrl));
+          return result.data.signedUrl;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get signed URL:', error);
+    } finally {
+      setLoadingUrls(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(photoPath);
+        return newSet;
+      });
+    }
+
+    return null;
+  }, [signedUrls, loadingUrls]);
+
+  // Photo component with signed URL handling
+  const PhotoDisplay = ({ photoPath, alt, className, onClick }: {
+    photoPath: string;
+    alt: string;
+    className: string;
+    onClick?: () => void;
+  }) => {
+    const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+    const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+
+    useEffect(() => {
+      const loadPhoto = async () => {
+        if (!photoPath) return;
+        
+        setIsLoadingUrl(true);
+        const signedUrl = await getSignedPhotoUrl(photoPath);
+        setDisplayUrl(signedUrl);
+        setIsLoadingUrl(false);
+      };
+
+      loadPhoto();
+    }, [photoPath]);
+
+    if (isLoadingUrl) {
+      return (
+        <div className={`${className} bg-trust-100 border-4 border-trust-200 flex items-center justify-center`}>
+          <div className="text-center">
+            <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <span className="text-trust-400 text-sm">Loading...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (!displayUrl) {
+      return (
+        <div className={`${className} bg-trust-100 border-4 border-trust-200 flex items-center justify-center`}>
+          <div className="text-center">
+            <svg className="w-12 h-12 text-trust-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-trust-400 text-sm font-medium">No Photo Available</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={displayUrl}
+        alt={alt}
+        className={className}
+        onClick={onClick}
+        onError={(e) => {
+          console.error('Failed to load image:', displayUrl);
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const parent = target.parentElement;
+          if (parent) {
+            parent.innerHTML = `
+              <div class="text-center">
+                <svg class="w-12 h-12 text-trust-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span class="text-trust-400 text-sm font-medium">Photo Unavailable</span>
+              </div>
+            `;
+          }
+        }}
+      />
+    );
+  };
 
   // Check authentication and fetch data
   useEffect(() => {
@@ -195,6 +318,56 @@ export default function SubmissionsPage() {
     }
   };
 
+  const refreshPhotos = async () => {
+    setIsRefreshingPhotos(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const response = await fetch('/api/admin/refresh-photos', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast.success(result.message);
+          
+          // Show detailed results if there were issues
+          if (result.data.errors.length > 0) {
+            console.warn('Photo refresh issues:', result.data.errors);
+            toast.error(`${result.data.photosMissing} photos are missing from storage`);
+          }
+          
+          // Clear the signed URLs cache to force refresh
+          setSignedUrls(new Map());
+          
+          // Reload submissions to get updated URLs
+          const token = localStorage.getItem('adminToken');
+          if (token) {
+            fetchSubmissions(token);
+          }
+        } else {
+          toast.error(result.error || 'Photo refresh failed');
+        }
+      } else {
+        toast.error('Photo refresh failed');
+      }
+    } catch (error) {
+      console.error('Photo refresh error:', error);
+      toast.error('Photo refresh failed');
+    } finally {
+      setIsRefreshingPhotos(false);
+    }
+  };
+
   // Filter submissions based on search and filters
   const filteredSubmissions = submissions.filter((submission) => {
     const searchMatch = searchTerm === '' || 
@@ -278,6 +451,15 @@ export default function SubmissionsPage() {
               </div>
               
               <div className="flex items-center space-x-4">
+                <button
+                  onClick={refreshPhotos}
+                  disabled={isRefreshingPhotos}
+                  className="btn-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh all photos and fix broken URLs"
+                >
+                  <ArrowPathIcon className={`w-4 h-4 mr-2 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
+                  {isRefreshingPhotos ? 'Refreshing...' : 'Refresh Photos'}
+                </button>
                 <button
                   onClick={exportSubmissions}
                   className="btn-secondary flex items-center"
@@ -412,18 +594,11 @@ export default function SubmissionsPage() {
                           <td className="py-3 px-4">
                             <div className="flex items-center justify-center">
                               {submission.selfieUrl ? (
-                                <img
-                                  src={submission.selfieUrl}
+                                <PhotoDisplay
+                                  photoPath={submission.selfieUrl}
                                   alt={`${submission.firstName} ${submission.lastName}`}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-trust-200 cursor-pointer hover:border-primary-400 transition-colors"
                                   onClick={() => setSelectedSubmission(submission)}
-                                  onError={(e) => {
-                                    console.error('Thumbnail failed to load:', submission.selfieUrl);
-                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAxNkMyMC42ODYzIDE2IDE4IDE4LjY4NjMgMTggMjJDMTggMjUuMzEzNyAyMC42ODYzIDI4IDI0IDI4QzI3LjMxMzcgMjggMzAgMjUuMzEzNyAzMCAyMkMzMCAxOC42ODYzIDI3LjMxMzcgMTYgMjQgMTZaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik0xNiAzNkMxNiAzMC40NzcxIDE5LjU4MTcgMjYgMjQgMjZDMjguNDE4MyAyNiAzMiAzMC40NzcxIDMyIDM2SDM2VjQwSDE2VjM2WiIgZmlsbD0iIzk5OTk5OSIvPgo8L3N2Zz4K';
-                                  }}
-                                  onLoad={() => {
-                                    console.log('Thumbnail loaded successfully:', submission.selfieUrl);
-                                  }}
                                 />
                               ) : (
                                 <div className="w-12 h-12 rounded-full bg-trust-100 border-2 border-trust-200 flex items-center justify-center cursor-pointer hover:border-primary-400 transition-colors"
@@ -547,22 +722,16 @@ export default function SubmissionsPage() {
                     {selectedSubmission.selfieUrl ? (
                       <div className="text-center">
                         <div className="relative group">
-                          <img
-                            src={selectedSubmission.selfieUrl}
+                          <PhotoDisplay
+                            photoPath={selectedSubmission.selfieUrl}
                             alt={`${selectedSubmission.firstName} ${selectedSubmission.lastName}`}
                             className="w-40 h-40 rounded-xl object-cover border-4 border-trust-200 shadow-lg mx-auto cursor-pointer hover:border-primary-400 transition-all duration-300 group-hover:shadow-xl"
-                            onError={(e) => {
-                              console.error('Failed to load image:', selectedSubmission.selfieUrl);
-                              const target = e.target as HTMLImageElement;
-                              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCIgdmlld0JveD0iMCAwIDE2MCAxNjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iMTYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04MCA1MkM2OC45NTQzIDUyIDYwIDYwLjk1NDMgNjAgNzJDNjAgODMuMDQ1NyA2OC45NTQzIDkyIDgwIDkyQzkxLjA0NTcgOTIgMTAwIDgzLjA0NTcgMTAwIDcyQzEwMCA2MC45NTQzIDkxLjA0NTcgNTIgODAgNTJaIiBmaWxsPSIjOTk5OTk5Ii8+CjxwYXRoIGQ9Ik01MiAxMjBDNTIgMTAxLjkwOSA2My42NDY4IDg2IDgwIDg2Qzk2LjM1MzIgODYgMTA4IDEwMS45MDkgMTA4IDEyMEgxMjBWMTMySDUyVjEyMFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+Cg==';
-                              target.parentElement?.parentElement?.classList.add('error-state');
-                            }}
-                            onLoad={() => {
-                              console.log('Image loaded successfully:', selectedSubmission.selfieUrl);
-                            }}
-                            onClick={() => {
-                              // Click to view full size in new tab
-                              window.open(selectedSubmission.selfieUrl, '_blank');
+                            onClick={async () => {
+                              // Get signed URL and open in new tab
+                              const signedUrl = await getSignedPhotoUrl(selectedSubmission.selfieUrl);
+                              if (signedUrl) {
+                                window.open(signedUrl, '_blank');
+                              }
                             }}
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-300 flex items-center justify-center">
