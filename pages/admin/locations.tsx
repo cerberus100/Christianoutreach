@@ -155,11 +155,32 @@ export default function LocationsPage() {
         },
       });
 
+      const status = response.status;
       const result = await response.json();
 
       if (result.success) {
         toast.success('Location deleted!');
         fetchLocations(token);
+      } else if (status === 409) {
+        const confirmArchive = confirm(
+          `${location.name} has submissions. Do you want to archive this location instead?\n\nArchiving will deactivate the location without deleting any submissions.`
+        );
+        if (!confirmArchive) return;
+
+        const archiveResponse = await fetch(`/api/admin/locations/${location.id}?action=archive`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const archiveResult = await archiveResponse.json();
+        if (archiveResponse.ok && archiveResult.success) {
+          toast.success('Location archived!');
+          fetchLocations(token);
+        } else {
+          toast.error(archiveResult.error || 'Archive failed');
+        }
       } else {
         toast.error(result.error || 'Delete failed');
       }
