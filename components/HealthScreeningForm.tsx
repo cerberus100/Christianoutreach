@@ -745,6 +745,72 @@ export default function HealthScreeningForm({
                     )}
                   </div>
                 </div>
+
+                {/* Eczema Diagnosis */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Eczema Diagnosis</h3>
+                    <p className="text-sm text-trust-600 mb-4">
+                      Have you ever been diagnosed with eczema by a healthcare provider?
+                    </p>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('eczemaHistory', { required: 'Please select an answer' })}
+                          value="true"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('eczemaHistory', { required: 'Please select an answer' })}
+                          value="false"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">No</span>
+                      </label>
+                    </div>
+                    {errors.eczemaHistory && (
+                      <p className="form-error mt-2">{errors.eczemaHistory.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Family History of Asthma */}
+                <div className="health-card card">
+                  <div className="card-body">
+                    <h3 className="font-medium text-trust-900 mb-3">Family History of Asthma</h3>
+                    <p className="text-sm text-trust-600 mb-4">
+                      Has your mother, father, grandparent, or close relative ever been diagnosed with asthma?
+                    </p>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('familyHistoryAsthma', { required: 'Please select an answer' })}
+                          value="true"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">Yes</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          {...register('familyHistoryAsthma', { required: 'Please select an answer' })}
+                          value="false"
+                          className="radio-custom"
+                        />
+                        <span className="ml-2">No</span>
+                      </label>
+                    </div>
+                    {errors.familyHistoryAsthma && (
+                      <p className="form-error mt-2">{errors.familyHistoryAsthma.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -924,6 +990,25 @@ export default function HealthScreeningForm({
                          <span className="ml-2">Not sure</span>
                        </label>
                      </div>
+                   </div>
+                 </div>
+
+                 {/* Insurance ID */}
+                 <div className="health-card card">
+                   <div className="card-body">
+                     <h3 className="font-medium text-trust-900 mb-3">Insurance ID</h3>
+                     <p className="text-sm text-trust-600 mb-4">
+                       Please enter your insurance ID number (if available)
+                     </p>
+                     <input
+                       type="text"
+                       {...register('insuranceId')}
+                       className="form-input"
+                       placeholder="Enter your insurance ID number"
+                     />
+                     <p className="text-xs text-trust-500 mt-2">
+                       This field is optional. You can find this on your insurance card.
+                     </p>
                    </div>
                  </div>
               </div>

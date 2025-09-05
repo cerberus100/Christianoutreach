@@ -52,6 +52,8 @@ export interface HealthSubmission {
   familyHistoryHighBP: boolean;
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
+  eczemaHistory: boolean;
+  familyHistoryAsthma: boolean;
   
   // Additional health questions
   sex: 'male' | 'female';
@@ -59,6 +61,7 @@ export interface HealthSubmission {
   chronicKidneyDisease: boolean;
   diabetes: boolean;
   insuranceType: 'private' | 'government' | 'none' | 'not-sure';
+  insuranceId?: string;
   
   // TCPA Consent
   tcpaConsent: boolean;
@@ -208,6 +211,8 @@ export interface FormData {
   familyHistoryHighBP: boolean;
   familyHistoryDementia: boolean;
   nerveSymptoms: boolean;
+  eczemaHistory: boolean;
+  familyHistoryAsthma: boolean;
   
   // Additional health questions
   sex: 'male' | 'female';
@@ -215,6 +220,7 @@ export interface FormData {
   chronicKidneyDisease: boolean;
   diabetes: boolean;
   insuranceType: 'private' | 'government' | 'none' | 'not-sure';
+  insuranceId?: string;
   
   // TCPA Consent
   tcpaConsent: boolean;
