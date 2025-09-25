@@ -1,23 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
+import { requireAdmin } from '@/lib/auth';
 import { DashboardStats, HealthSubmission, ApiResponse } from '@/types';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export default async function handler(
   req: NextApiRequest,
@@ -30,13 +14,9 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
-  }
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     // In a real application, this would query DynamoDB

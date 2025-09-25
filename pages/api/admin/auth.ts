@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ApiResponse } from '@/types';
+import { setAuthCookie, clearAuthCookie, generateToken, JwtPayload } from '@/lib/auth';
 
 interface LoginRequest {
   email: string;
@@ -9,7 +10,6 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
-  token: string;
   user: {
     id: string;
     email: string;
@@ -70,17 +70,16 @@ export default async function handler(
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET || 'fallback-secret',
-      {
-        expiresIn: '24h',
-      }
-    );
+    const tokenPayload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = generateToken(tokenPayload);
+
+    // Set HttpOnly cookie
+    setAuthCookie(res, token);
 
     // Log successful login (in production, save to database)
     console.warn(`Admin login successful: ${email} at ${new Date().toISOString()}`);
@@ -88,7 +87,6 @@ export default async function handler(
     res.status(200).json({
       success: true,
       data: {
-        token,
         user: {
           id: user.id,
           email: user.email,
@@ -100,11 +98,44 @@ export default async function handler(
 
   } catch (error) {
     console.error('Auth API error:', error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Internal server error',
       message: 'Authentication failed',
+    });
+  }
+}
+
+// Logout endpoint - POST /api/admin/auth/logout
+export async function logoutHandler(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse<{}>>
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      success: false,
+      error: 'Method not allowed',
+    });
+  }
+
+  try {
+    // Clear the auth cookie
+    clearAuthCookie(res);
+
+    res.status(200).json({
+      success: true,
+      data: {},
+      message: 'Logged out successfully',
+    });
+
+  } catch (error) {
+    console.error('Logout API error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Logout failed',
     });
   }
 } 

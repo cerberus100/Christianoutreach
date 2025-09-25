@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { smsService } from '../../../lib/sms-service';
+import { requireAdmin } from '../../../lib/auth';
 
 interface TestSMSRequest {
   phoneNumber: string;
@@ -26,6 +27,10 @@ export default async function handler(
       error: 'Method not allowed',
     });
   }
+
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     const { phoneNumber }: TestSMSRequest = req.body;
