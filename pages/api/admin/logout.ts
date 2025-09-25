@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { clearAuthCookie } from '@/lib/auth';
+import { clearAuthCookies } from '@/lib/auth';
 import { ApiResponse } from '@/types';
 
 export default async function handler(
@@ -14,8 +14,8 @@ export default async function handler(
   }
 
   try {
-    // Clear the auth cookie
-    clearAuthCookie(res);
+    // Clear the auth cookies
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,

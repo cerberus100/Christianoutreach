@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin } from '@/lib/auth';
 import { submissionsService } from '@/lib/submissions-service';
+import { validateData, followUpUpdateSchema, FollowUpUpdateInput } from '@/lib/validation';
 import { HealthSubmission, ApiResponse } from '@/types';
 
 // Development mode check
@@ -101,16 +102,19 @@ async function handleUpdateSubmission(
       });
     }
 
-    const { followUpStatus, followUpNotes, followUpDate } = req.body;
+    // Validate request body using Zod
+    const validation = validateData(followUpUpdateSchema, req.body);
 
-    // Validate required fields
-    if (!followUpStatus) {
+    if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required field',
-        message: 'followUpStatus is required',
+        error: 'Validation failed',
+        message: 'Invalid request data',
+        validationErrors: validation.errors,
       });
     }
+
+    const { followUpStatus, followUpNotes, followUpDate } = validation.data;
 
     console.log(`Admin ${user.email} updating submission ${id}...`);
 

@@ -2,7 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ApiResponse } from '@/types';
-import { setAuthCookie, clearAuthCookie, generateToken, JwtPayload } from '@/lib/auth';
+import { setAuthTokens, clearAuthCookies, generateTokenPair, JwtPayload, getClientIP } from '@/lib/auth';
+import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { validateData, loginSchema, LoginInput } from '@/lib/validation';
 
 interface LoginRequest {
   email: string;
@@ -10,6 +12,8 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
   user: {
     id: string;
     email: string;
@@ -28,15 +32,43 @@ export default async function handler(
     });
   }
 
-  try {
-    const { email, password }: LoginRequest = req.body;
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(clientIP, 'LOGIN');
 
-    if (!email || !password) {
+  // Add rate limit headers
+  const rateLimitHeaders = createRateLimitHeaders(rateLimitResult.remainingAttempts, rateLimitResult.resetTime, 'LOGIN');
+  Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+
+  if (!rateLimitResult.allowed) {
+    console.warn(`Rate limit exceeded for IP: ${clientIP} at ${new Date().toISOString()}`);
+
+    return res.status(429).json({
+      success: false,
+      error: 'Too many login attempts',
+      message: 'Please try again later',
+      retryAfter: rateLimitResult.resetTime,
+    });
+  }
+
+  try {
+    // Validate request body using Zod
+    const validation = validateData(loginSchema, req.body);
+
+    if (!validation.success) {
+      console.warn(`Invalid login attempt - validation failed from IP: ${clientIP} at ${new Date().toISOString()}: ${validation.errors.join(', ')}`);
+
       return res.status(400).json({
         success: false,
-        error: 'Email and password are required',
+        error: 'Validation failed',
+        message: 'Invalid login credentials',
+        validationErrors: validation.errors,
       });
     }
+
+    const { email, password }: LoginInput = validation.data;
 
     // Demo credentials (replace with database lookup in production)
     const demoUser = {
@@ -53,6 +85,8 @@ export default async function handler(
     const user = email === demoUser.email ? demoUser : null;
 
     if (!user) {
+      console.warn(`Failed login attempt - invalid email: ${email} from IP: ${clientIP} at ${new Date().toISOString()}`);
+
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password',
@@ -61,32 +95,34 @@ export default async function handler(
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.hashedPassword);
-    
+
     if (!isValidPassword) {
+      console.warn(`Failed login attempt - invalid password for email: ${email} from IP: ${clientIP} at ${new Date().toISOString()}`);
+
       return res.status(401).json({
         success: false,
         error: 'Invalid email or password',
       });
     }
 
-    // Generate JWT token
-    const tokenPayload: JwtPayload = {
+    // Generate access and refresh tokens
+    const tokens = generateTokenPair({
       userId: user.id,
       email: user.email,
       role: user.role,
-    };
+    });
 
-    const token = generateToken(tokenPayload);
-
-    // Set HttpOnly cookie
-    setAuthCookie(res, token);
+    // Set HttpOnly cookies
+    setAuthTokens(res, tokens.accessToken, tokens.refreshToken);
 
     // Log successful login (in production, save to database)
-    console.warn(`Admin login successful: ${email} at ${new Date().toISOString()}`);
+    console.log(`✅ Admin login successful - User: ${email}, IP: ${clientIP}, UserAgent: ${req.headers['user-agent']}, Timestamp: ${new Date().toISOString()}`);
 
     res.status(200).json({
       success: true,
       data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -120,8 +156,8 @@ export async function logoutHandler(
   }
 
   try {
-    // Clear the auth cookie
-    clearAuthCookie(res);
+    // Clear the auth cookies
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,

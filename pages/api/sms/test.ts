@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { smsService } from '../../../lib/sms-service';
 import { requireAdmin } from '../../../lib/auth';
+import { validateData, testSmsSchema, TestSmsInput } from '../../../lib/validation';
 
 interface TestSMSRequest {
   phoneNumber: string;
@@ -33,15 +34,19 @@ export default async function handler(
   if (!user) return; // Response already sent by requireAdmin
 
   try {
-    const { phoneNumber }: TestSMSRequest = req.body;
+    // Validate request body using Zod
+    const validation = validateData(testSmsSchema, req.body);
 
-    // Validate input
-    if (!phoneNumber) {
+    if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Phone number is required',
+        error: 'Validation failed',
+        message: 'Invalid SMS test request data',
+        validationErrors: validation.errors,
       });
     }
+
+    const { phoneNumber }: TestSmsInput = validation.data;
 
     // Check if SMS service is enabled
     if (!smsService.isEnabled()) {

@@ -8,8 +8,9 @@ import {
   ScanCommandInput,
   QueryCommandInput
 } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLES } from '@/lib/aws-config';
+import { docClient, TABLES, GSI } from '@/lib/aws-config';
 import { HealthSubmission } from '@/types';
+import { validatePhotoUrl, verifyPhotoAccess } from './photo-security';
 
 export interface PaginationParams {
   limit?: number;
@@ -92,15 +93,13 @@ export class SubmissionsService {
     churchId: string,
     limit: number
   ): Promise<PaginatedResponse<HealthSubmission>> {
-    const gsiName = process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE;
-
-    if (!gsiName) {
+    if (!GSI.SUBMISSIONS_CHURCH_DATE) {
       throw new Error('Church submissions GSI not configured. Set APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE environment variable.');
     }
 
     const queryParams: QueryCommandInput = {
       TableName: TABLES.SUBMISSIONS,
-      IndexName: gsiName,
+      IndexName: GSI.SUBMISSIONS_CHURCH_DATE,
       KeyConditionExpression: 'churchId = :churchId',
       ExpressionAttributeValues: {
         ':churchId': churchId,
@@ -134,9 +133,7 @@ export class SubmissionsService {
     limit: number = this.defaultLimit,
     nextToken?: string
   ): Promise<PaginatedResponse<HealthSubmission>> {
-    const gsiName = process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE;
-
-    if (!gsiName) {
+    if (!GSI.SUBMISSIONS_CHURCH_DATE) {
       throw new Error('Church submissions GSI not configured. Set APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE environment variable.');
     }
 
@@ -159,7 +156,7 @@ export class SubmissionsService {
 
     const queryParams: QueryCommandInput = {
       TableName: TABLES.SUBMISSIONS,
-      IndexName: gsiName,
+      IndexName: GSI.SUBMISSIONS_CHURCH_DATE,
       KeyConditionExpression: keyConditionExpression,
       ExpressionAttributeValues: expressionAttributeValues,
       Limit: limit,
@@ -308,8 +305,22 @@ export class SubmissionsService {
       followUpStatus?: string;
       followUpNotes?: string;
       followUpDate?: string;
+      selfieUrl?: string; // Allow photo URL updates
     }
   ): Promise<HealthSubmission> {
+    // Validate photo URL if provided
+    if (updates.selfieUrl) {
+      const photoValidation = validatePhotoUrl(updates.selfieUrl, submissionId);
+      if (!photoValidation.isValid) {
+        throw new Error(`Invalid photo URL: ${photoValidation.errors.join(', ')}`);
+      }
+
+      // Verify photo exists and is accessible
+      const photoAccess = await verifyPhotoAccess(updates.selfieUrl);
+      if (!photoAccess.exists) {
+        throw new Error(`Photo not accessible: ${photoAccess.errors.join(', ')}`);
+      }
+    }
     const updateExpression: string[] = [];
     const expressionAttributeValues: Record<string, any> = {};
     const expressionAttributeNames: Record<string, string> = {};

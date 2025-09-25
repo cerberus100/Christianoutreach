@@ -11,25 +11,57 @@ export interface JwtPayload {
   role: string;
   iat?: number;
   exp?: number;
+  type: 'access' | 'refresh';
 }
 
 /**
- * Cookie options for different environments
+ * Token response interface
  */
-const getCookieOptions = (isProduction: boolean = process.env.NODE_ENV === 'production') => ({
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: 'lax' as const,
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  path: '/',
-});
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 /**
- * Set JWT token as HttpOnly cookie
+ * Cookie options for different environments and token types
  */
-export function setAuthCookie(res: NextApiResponse, token: string): void {
-  const cookieName = 'health-screening-auth';
-  const options = getCookieOptions();
+const getCookieOptions = (
+  isProduction: boolean = process.env.NODE_ENV === 'production',
+  tokenType: 'access' | 'refresh' = 'access'
+) => {
+  const baseOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+  };
+
+  // Access tokens: 4 hours
+  if (tokenType === 'access') {
+    return {
+      ...baseOptions,
+      maxAge: 4 * 60 * 60 * 1000, // 4 hours
+    };
+  }
+
+  // Refresh tokens: 30 days
+  return {
+    ...baseOptions,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  };
+};
+
+/**
+ * Set access token as HttpOnly cookie
+ */
+export function setAccessTokenCookie(res: NextApiResponse, token: string): void {
+  const cookieName = 'health-screening-access';
+  const options = getCookieOptions(true, 'access');
 
   res.setHeader('Set-Cookie', `${cookieName}=${token}; ${Object.entries(options)
     .map(([key, value]) => `${key}=${value}`)
@@ -37,58 +69,119 @@ export function setAuthCookie(res: NextApiResponse, token: string): void {
 }
 
 /**
- * Clear auth cookie
+ * Set refresh token as HttpOnly cookie
  */
-export function clearAuthCookie(res: NextApiResponse): void {
-  const cookieName = 'health-screening-auth';
-  const options = getCookieOptions();
+export function setRefreshTokenCookie(res: NextApiResponse, token: string): void {
+  const cookieName = 'health-screening-refresh';
+  const options = getCookieOptions(true, 'refresh');
 
-  res.setHeader('Set-Cookie', `${cookieName}=; ${Object.entries(options)
+  res.setHeader('Set-Cookie', `${cookieName}=${token}; ${Object.entries(options)
     .map(([key, value]) => `${key}=${value}`)
-    .join('; ')}; expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+    .join('; ')}`);
 }
 
 /**
- * Extract JWT token from HttpOnly cookie
+ * Clear auth cookies
  */
-export function getTokenFromCookie(req: NextApiRequest): string | null {
+export function clearAuthCookies(res: NextApiResponse): void {
+  const accessOptions = getCookieOptions(true, 'access');
+  const refreshOptions = getCookieOptions(true, 'refresh');
+
+  res.setHeader('Set-Cookie', [
+    `health-screening-access=; ${Object.entries(accessOptions)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ')}; expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    `health-screening-refresh=; ${Object.entries(refreshOptions)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ')}; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  ]);
+}
+
+/**
+ * Set both access and refresh tokens as HttpOnly cookies
+ */
+export function setAuthTokens(res: NextApiResponse, accessToken: string, refreshToken: string): void {
+  setAccessTokenCookie(res, accessToken);
+  setRefreshTokenCookie(res, refreshToken);
+}
+
+/**
+ * Extract access token from HttpOnly cookie
+ */
+export function getAccessTokenFromCookie(req: NextApiRequest): string | null {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
-    return cookies['health-screening-auth'] || null;
+    return cookies['health-screening-access'] || null;
   } catch {
     return null;
   }
 }
 
 /**
- * Middleware to verify JWT token from HttpOnly cookie
+ * Extract refresh token from HttpOnly cookie
+ */
+export function getRefreshTokenFromCookie(req: NextApiRequest): string | null {
+  try {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    return cookies['health-screening-refresh'] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Middleware to verify access token from HttpOnly cookie
  */
 export function verifyAuth(req: NextApiRequest): boolean {
-  const token = getTokenFromCookie(req);
+  return hasValidToken(req);
+}
+
+/**
+ * Verify refresh token from HttpOnly cookie
+ */
+export function verifyRefreshToken(req: NextApiRequest): boolean {
+  const token = getRefreshTokenFromCookie(req);
   if (!token) {
     return false;
   }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    return decoded.type === 'refresh';
   } catch {
     return false;
   }
 }
 
 /**
- * Extract user information from JWT token in cookie
+ * Extract user information from access token in cookie
  */
 export function getUserFromToken(req: NextApiRequest): JwtPayload | null {
-  const token = getTokenFromCookie(req);
+  const token = getAccessTokenFromCookie(req);
   if (!token) {
     return null;
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
-    return decoded;
+    return decoded.type === 'access' ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract user information from refresh token in cookie
+ */
+export function getUserFromRefreshToken(req: NextApiRequest): JwtPayload | null {
+  const token = getRefreshTokenFromCookie(req);
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    return decoded.type === 'refresh' ? decoded : null;
   } catch {
     return null;
   }
@@ -119,7 +212,8 @@ export function requireAdmin(req: NextApiRequest, res: NextApiResponse): JwtPayl
     res.status(401).json({
       success: false,
       error: 'Authentication required',
-      message: 'Please log in to access this resource'
+      message: 'Please log in to access this resource',
+      requiresAuth: true
     });
     return null;
   }
@@ -137,14 +231,81 @@ export function requireAdmin(req: NextApiRequest, res: NextApiResponse): JwtPayl
 }
 
 /**
- * Generate JWT token
+ * Check if request has valid access token or refresh token
  */
-export function generateToken(payload: JwtPayload): string {
+export function hasValidToken(req: NextApiRequest): boolean {
+  const accessToken = getAccessTokenFromCookie(req);
+  const refreshToken = getRefreshTokenFromCookie(req);
+
+  if (!accessToken && !refreshToken) {
+    return false;
+  }
+
+  // If we have an access token, verify it's valid
+  if (accessToken) {
+    try {
+      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+      return decoded.type === 'access';
+    } catch {
+      // Access token is invalid/expired
+    }
+  }
+
+  // If we have a refresh token, verify it's valid
+  if (refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+      return decoded.type === 'refresh';
+    } catch {
+      // Refresh token is invalid/expired
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Generate access token (4 hours)
+ */
+export function generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required');
   }
 
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '24h',
+  const tokenPayload: JwtPayload = {
+    ...payload,
+    type: 'access',
+  };
+
+  return jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+    expiresIn: '4h',
   });
+}
+
+/**
+ * Generate refresh token (30 days)
+ */
+export function generateRefreshToken(payload: Omit<JwtPayload, 'type'>): string {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+
+  const tokenPayload: JwtPayload = {
+    ...payload,
+    type: 'refresh',
+  };
+
+  return jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
+}
+
+/**
+ * Generate both access and refresh tokens
+ */
+export function generateTokenPair(payload: Omit<JwtPayload, 'type'>): { accessToken: string; refreshToken: string } {
+  return {
+    accessToken: generateAccessToken(payload),
+    refreshToken: generateRefreshToken(payload),
+  };
 } 
