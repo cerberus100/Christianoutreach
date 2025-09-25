@@ -33,10 +33,9 @@ export default function DashboardPage() {
       } else {
         toast.error('Failed to load dashboard data');
       }
-    } catch (error) {
-      console.error('Dashboard fetch error:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
+          } catch {
+        toast.error('Failed to load dashboard data');
+      } finally {
       setIsLoading(false);
     }
   }, [router]);
@@ -93,10 +92,9 @@ export default function DashboardPage() {
       } else {
         toast.error('Export failed');
       }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Export failed');
-    }
+          } catch {
+        toast.error('Export failed');
+      }
   };
 
   const handleViewSubmissions = () => {

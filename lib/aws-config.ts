@@ -41,4 +41,4 @@ export const GSI = {
 };
 
 // S3 Bucket
-export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || 'health-screening-photos-2024'; 
+export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || 'health-screening-photos-2024'; 

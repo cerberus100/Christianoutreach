@@ -4,9 +4,7 @@ import { submissionsService } from '@/lib/submissions-service';
 import { validateData, followUpUpdateSchema, FollowUpUpdateInput } from '@/lib/validation';
 import { HealthSubmission, ApiResponse } from '@/types';
 
-// Development mode check
-const isDevelopment = process.env.NODE_ENV === 'development';
-const hasAWSCredentials = !!(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY);
+// Production mode - always use DynamoDB
 
 export default async function handler(
   req: NextApiRequest,
@@ -33,34 +31,31 @@ async function handleGetSubmissions(
   if (!user) return; // Response already sent by requireAdmin
 
   try {
-    console.log(`Admin ${user.email} fetching submissions...`);
+    console.log('Fetching submissions from DynamoDB...');
+    console.log('Table name:', TABLES.SUBMISSIONS);
 
-    // Extract query parameters
-    const {
-      limit,
-      nextToken,
-      location,
-      riskLevel,
-      followUpStatus,
-      search,
-      startDate,
-      endDate
-    } = req.query;
+    // Query all submissions from DynamoDB
+    console.log('Querying DynamoDB for submissions...');
+    
+    const scanParams: ScanCommandInput = {
+      TableName: TABLES.SUBMISSIONS,
+      // We'll scan the entire table for now
+      // In production with large datasets, consider using Query with GSI
+    };
 
-    // Convert limit to number with validation
-    const limitNum = limit ? Math.min(parseInt(limit as string, 10), 100) : undefined;
-
-    // Get submissions using the service
-    const result = await submissionsService.getSubmissions({
-      limit: limitNum,
-      nextToken: nextToken as string,
-      churchId: location as string,
-      riskLevel: riskLevel as string,
-      followUpStatus: followUpStatus as string,
-      search: search as string,
-      startDate: startDate as string,
-      endDate: endDate as string,
-    });
+    let submissions: HealthSubmission[] = [];
+    try {
+      const result = await docClient.send(new ScanCommand(scanParams));
+      submissions = (result.Items || []) as HealthSubmission[];
+      console.log(`Retrieved ${submissions.length} submissions from DynamoDB`);
+    } catch (error) {
+      console.error('DynamoDB scan error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Database query failed',
+        message: 'Failed to retrieve submissions from database',
+      });
+    }
 
     console.log(`Returning ${result.items.length} submissions to admin ${user.email}`);
 

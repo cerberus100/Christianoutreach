@@ -1,0 +1,72 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linter
+      run: npm run lint
+      continue-on-error: false
+
+    - name: Type check
+      run: npx tsc --noEmit
+      continue-on-error: false
+
+    - name: Build application
+      run: npm run build
+      env:
+        JWT_SECRET: test-secret-key-for-ci-build-1234567890abcdef
+        APP_AWS_REGION: us-east-1
+        APP_ACCESS_KEY_ID: fake-key-for-ci
+        APP_SECRET_ACCESS_KEY: fake-secret-for-ci
+        APP_DYNAMODB_TABLE_NAME: test-submissions
+        APP_DYNAMODB_CHURCHES_TABLE: test-churches
+        APP_DYNAMODB_USERS_TABLE: test-users
+        APP_S3_BUCKET_NAME: test-bucket
+        ARYA_AI_API_KEY: fake-ai-key-for-ci
+        NODE_ENV: production
+
+    - name: Security audit (non-blocking)
+      run: npm audit --audit-level high
+      continue-on-error: true
+
+    - name: Deployment Ready Notification
+      run: |
+        echo "🚀 Build successful! Ready for AWS Amplify deployment."
+        echo "📋 Admin login credentials:"
+        echo "   Username: admin"
+        echo "   Password: faith+1"
+        echo "🔗 Monitor deployment: https://console.aws.amazon.com/amplify/"
+
+  deploy-notification:
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Success Notification
+      run: |
+        echo "✅ CI/CD Pipeline completed successfully!"
+        echo "🚀 Code is ready for AWS Amplify auto-deployment."
+        echo ""
+        echo "📱 Your health screening app will be live shortly at your Amplify domain."
+        echo "🔐 Admin access: username 'admin', password 'faith+1'"
