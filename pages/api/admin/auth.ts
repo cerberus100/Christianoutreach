@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { setAuthTokens, clearAuthCookies, generateTokenPair, JwtPayload } from '@/lib/auth';
+import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { validateData, loginSchema, LoginInput } from '@/lib/validation';
 
 interface AdminUser {
   id: string;
@@ -20,15 +23,19 @@ interface LoginRequest {
 
 interface AuthResponse {
   success: boolean;
-  token?: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
+  data?: {
+    accessToken: string;
+    refreshToken: string;
+    user: {
+      id: string;
+      email: string;
+      role: string;
+    };
   };
   error?: string;
   message?: string;
+  validationErrors?: string[];
+  retryAfter?: number;
 }
 
 export default async function handler(
@@ -43,7 +50,7 @@ export default async function handler(
   }
 
   // Rate limiting
-  const clientIP = getClientIP(req);
+  const clientIP = req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress || 'unknown';
   const rateLimitResult = checkRateLimit(clientIP, 'LOGIN');
 
   // Add rate limit headers
@@ -70,8 +77,6 @@ export default async function handler(
     if (!validation.success) {
       console.warn(`Invalid login attempt - validation failed from IP: ${clientIP} at ${new Date().toISOString()}: ${validation.errors.join(', ')}`);
 
-    // Basic validation
-    if (!email || !password) {
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
@@ -80,14 +85,7 @@ export default async function handler(
       });
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid email format',
-      });
-    }
+    const { email, password }: LoginInput = validation.data;
 
     // Demo admin credentials (original demo credentials for production)
     // Pre-computed hash for 'demo123' to avoid hashing on every request
@@ -145,38 +143,29 @@ export default async function handler(
       });
     }
 
-    // Generate JWT token
-    const tokenPayload = {
+    // Generate access and refresh tokens
+    const tokens = generateTokenPair({
       userId: adminUser.id,
       email: adminUser.email,
       role: adminUser.role,
-      name: adminUser.name,
-    };
+    });
 
-    const token = jwt.sign(
-      tokenPayload,
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '8h' }
-    );
+    // Set HttpOnly cookies
+    setAuthTokens(res, tokens.accessToken, tokens.refreshToken);
 
-    // Update last login timestamp (optional for demo)
-    if (adminUser.id !== 'demo-admin-001') {
-      try {
-        // Update last login in database if not demo user
-      } catch (updateError) {
-        console.warn('Failed to update last login timestamp:', updateError);
-      }
-    }
+    // Log successful login (in production, save to database)
+    console.log(`✅ Admin login successful - User: ${email}, IP: ${clientIP}, UserAgent: ${req.headers['user-agent']}, Timestamp: ${new Date().toISOString()}`);
 
-    // Successful login
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      token,
-      user: {
-        id: adminUser.id,
-        email: adminUser.email,
-        name: adminUser.name,
-        role: adminUser.role,
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          role: adminUser.role,
+        },
       },
       message: 'Login successful',
     });
@@ -194,7 +183,7 @@ export default async function handler(
 // Logout endpoint - POST /api/admin/auth/logout
 export async function logoutHandler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse<{}>>
+  res: NextApiResponse<AuthResponse>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -209,7 +198,7 @@ export async function logoutHandler(
 
     res.status(200).json({
       success: true,
-      data: {},
+      data: undefined,
       message: 'Logged out successfully',
     });
 

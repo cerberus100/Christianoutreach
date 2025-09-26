@@ -43,8 +43,7 @@ export default async function handler(
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
-        message: 'Invalid SMS request data',
-        validationErrors: validation.errors,
+        message: `Invalid SMS request data: ${validation.errors.join(', ')}`,
       });
     }
 

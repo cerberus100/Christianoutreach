@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { submissionsService } from '@/lib/submissions-service';
 import { validateData, followUpUpdateSchema, FollowUpUpdateInput } from '@/lib/validation';
 import { HealthSubmission, ApiResponse } from '@/types';
+import { docClient, TABLES } from '@/lib/aws-config';
+import { ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
 
 // Production mode - always use DynamoDB
 
@@ -57,14 +59,12 @@ async function handleGetSubmissions(
       });
     }
 
-    console.log(`Returning ${result.items.length} submissions to admin ${user.email}`);
+    console.log(`Returning ${submissions.length} submissions to admin ${user.email}`);
 
     res.status(200).json({
       success: true,
-      data: result.items,
-      nextToken: result.nextToken,
-      count: result.count,
-      message: `Retrieved ${result.items.length} submissions`,
+      data: submissions,
+      message: `Retrieved ${submissions.length} submissions`,
     });
 
   } catch (error) {
@@ -104,8 +104,7 @@ async function handleUpdateSubmission(
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
-        message: 'Invalid request data',
-        validationErrors: validation.errors,
+        message: `Invalid request data: ${validation.errors.join(', ')}`,
       });
     }
 

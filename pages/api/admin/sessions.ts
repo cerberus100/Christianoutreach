@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { requireAdmin, clearAuthCookies, getClientIP } from '@/lib/auth';
+import { requireAdmin, clearAuthCookies } from '@/lib/auth';
 import { ApiResponse } from '@/types';
 
 interface InvalidateSessionResponse {
@@ -22,7 +22,7 @@ export default async function handler(
   const user = requireAdmin(req, res);
   if (!user) return; // Response already sent by requireAdmin
 
-  const clientIP = getClientIP(req);
+  const clientIP = req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress || 'unknown';
 
   try {
     // Clear all auth cookies

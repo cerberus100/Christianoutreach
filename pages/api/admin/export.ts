@@ -7,22 +7,7 @@ import { readFileSync, unlinkSync } from 'fs';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { HealthSubmission } from '@/types';
-
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { submissionsService } from '@/lib/submissions-service';
 
 // Helper function to format boolean values for CSV
 function formatBoolean(value: boolean | undefined): string {

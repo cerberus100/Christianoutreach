@@ -145,7 +145,7 @@ export async function verifyPhotoAccess(url: string): Promise<{
     }
 
     // Validate content type
-    if (response.ContentType && !PHOTO_SECURITY_CONFIG.allowedMimeTypes.includes(response.ContentType)) {
+    if (response.ContentType && !PHOTO_SECURITY_CONFIG.allowedMimeTypes.includes(response.ContentType as any)) {
       return {
         exists: false,
         errors: [`Invalid photo content type: ${response.ContentType}`]
