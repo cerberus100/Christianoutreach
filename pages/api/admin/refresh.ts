@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRefreshToken, generateTokenPair, setAuthTokens, clearAuthCookies, getClientIP } from '@/lib/auth';
+import { getUserFromRefreshToken, generateTokenPair, setAuthTokens, clearAuthCookies } from '@/lib/auth';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { ApiResponse } from '@/types';
 
@@ -11,6 +11,7 @@ interface RefreshResponse {
     email: string;
     role: string;
   };
+  retryAfter?: number;
 }
 
 export default async function handler(
@@ -25,7 +26,7 @@ export default async function handler(
   }
 
   // Rate limiting for refresh attempts
-  const clientIP = getClientIP(req);
+  const clientIP = req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress || 'unknown';
   const rateLimitResult = checkRateLimit(clientIP, 'REFRESH');
 
   // Add rate limit headers
@@ -41,7 +42,6 @@ export default async function handler(
       success: false,
       error: 'Too many refresh attempts',
       message: 'Please try again later',
-      retryAfter: rateLimitResult.resetTime,
     });
   }
 

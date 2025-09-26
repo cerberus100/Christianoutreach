@@ -198,7 +198,7 @@ export function validateData<T>(schema: z.ZodSchema<T>, data: unknown): { succes
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        errors: error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
+        errors: (error as z.ZodError).issues.map((err: any) => `${err.path.join('.')}: ${err.message}`)
       };
     }
     return { success: false, errors: ['Invalid data format'] };

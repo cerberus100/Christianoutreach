@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
-import cookie from 'cookie';
+import { parse } from 'cookie';
 
 /**
  * JWT payload interface
@@ -110,7 +110,7 @@ export function setAuthTokens(res: NextApiResponse, accessToken: string, refresh
  */
 export function getAccessTokenFromCookie(req: NextApiRequest): string | null {
   try {
-    const cookies = cookie.parse(req.headers.cookie || '');
+    const cookies = parse(req.headers.cookie || '');
     return cookies['health-screening-access'] || null;
   } catch {
     return null;
@@ -122,7 +122,7 @@ export function getAccessTokenFromCookie(req: NextApiRequest): string | null {
  */
 export function getRefreshTokenFromCookie(req: NextApiRequest): string | null {
   try {
-    const cookies = cookie.parse(req.headers.cookie || '');
+    const cookies = parse(req.headers.cookie || '');
     return cookies['health-screening-refresh'] || null;
   } catch {
     return null;
@@ -192,7 +192,7 @@ export function getUserFromRefreshToken(req: NextApiRequest): JwtPayload | null 
  */
 export function hasRole(req: NextApiRequest, role: string): boolean {
   const user = getUserFromToken(req);
-  return user && user.role === role;
+  return !!(user && user.role === role);
 }
 
 /**
