@@ -1,24 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import QRCode from 'qrcode';
-// import jwt from 'jsonwebtoken';
-
-// Middleware to verify JWT token (currently unused but may be needed for auth)
-/*
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-*/
+import { requireAdmin } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,8 +13,10 @@ export default async function handler(
     });
   }
 
-  // For QR code generation, we'll be more lenient with auth
-  // since it's often accessed via query params
+  // Verify admin authentication for QR code generation
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
+
   const { url, name } = req.query;
 
   if (!url) {

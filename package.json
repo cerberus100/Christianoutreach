@@ -20,7 +20,9 @@
     "setup:check": "node scripts/setup-check.js",
     "amplify:check": "node scripts/amplify-deploy-check.js",
     "yaml:validate": "node scripts/validate-yaml.js",
-    "fix:deps": "node scripts/fix-dependencies.js"
+    "fix:deps": "node scripts/fix-dependencies.js",
+    "setup:dynamodb-gsi": "node scripts/setup-dynamodb-gsi.js",
+    "check:dynamodb-gsi": "node scripts/setup-dynamodb-gsi.js --check"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.685.0",
@@ -34,6 +36,7 @@
     "aws-amplify": "^6.8.1",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
+    "cookie": "^0.6.0",
     "csv-writer": "^1.6.0",
     "date-fns": "^4.1.0",
     "fast-csv": "^5.0.1",
@@ -53,7 +56,8 @@
     "react-webcam": "^7.2.0",
     "recharts": "^2.13.3",
     "tailwindcss": "^3.4.17",
-    "uuid": "^11.0.3"
+    "uuid": "^11.0.3",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.15",

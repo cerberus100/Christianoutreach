@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
+import { requireAdmin } from '@/lib/auth';
 import { createObjectCsvWriter } from 'csv-writer';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -51,13 +51,9 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
-  }
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     // Query all submissions from DynamoDB

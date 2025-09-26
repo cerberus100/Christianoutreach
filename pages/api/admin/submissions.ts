@@ -1,45 +1,34 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-import { ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLES } from '@/lib/aws-config';
+import { requireAdmin } from '@/lib/auth';
+import { submissionsService } from '@/lib/submissions-service';
+import { validateData, followUpUpdateSchema, FollowUpUpdateInput } from '@/lib/validation';
 import { HealthSubmission, ApiResponse } from '@/types';
 
 // Production mode - always use DynamoDB
 
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse<HealthSubmission[]>>
+  res: NextApiResponse<ApiResponse<HealthSubmission[] | HealthSubmission>>
 ) {
-  if (req.method !== 'GET') {
+  if (req.method === 'GET') {
+    return handleGetSubmissions(req, res);
+  } else if (req.method === 'PUT') {
+    return handleUpdateSubmission(req, res);
+  } else {
     return res.status(405).json({
       success: false,
       error: 'Method not allowed',
     });
   }
+}
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
-  }
+async function handleGetSubmissions(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse<HealthSubmission[]>>
+) {
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     console.log('Fetching submissions from DynamoDB...');
@@ -68,54 +57,84 @@ export default async function handler(
       });
     }
 
-    // Apply filters if provided
-    const { location, riskLevel, followUpStatus, search } = req.query;
-    
-    let filteredSubmissions = [...submissions];
-
-    if (location) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.churchId === location);
-    }
-
-    if (riskLevel) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.healthRiskLevel === riskLevel);
-    }
-
-    if (followUpStatus) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.followUpStatus === followUpStatus);
-    }
-
-    if (search) {
-      const searchTerm = search.toString().toLowerCase();
-      filteredSubmissions = filteredSubmissions.filter(s => 
-        s.firstName.toLowerCase().includes(searchTerm) ||
-        s.lastName.toLowerCase().includes(searchTerm) ||
-        s.email?.toLowerCase().includes(searchTerm) ||
-        s.phone?.includes(searchTerm) ||
-        s.id.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Sort by submission date (newest first)
-    filteredSubmissions.sort((a, b) => 
-      new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()
-    );
-
-    console.log(`Returning ${filteredSubmissions.length} filtered submissions`);
+    console.log(`Returning ${result.items.length} submissions to admin ${user.email}`);
 
     res.status(200).json({
       success: true,
-      data: filteredSubmissions,
-      message: `Retrieved ${filteredSubmissions.length} submissions`,
+      data: result.items,
+      nextToken: result.nextToken,
+      count: result.count,
+      message: `Retrieved ${result.items.length} submissions`,
     });
 
   } catch (error) {
     console.error('Submissions API error:', error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Internal server error',
-      message: 'Failed to retrieve submissions',
+      message: error instanceof Error ? error.message : 'Failed to retrieve submissions',
+    });
+  }
+}
+
+async function handleUpdateSubmission(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse<HealthSubmission>>
+) {
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
+
+  try {
+    const { id } = req.query;
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid submission ID',
+        message: 'Submission ID is required',
+      });
+    }
+
+    // Validate request body using Zod
+    const validation = validateData(followUpUpdateSchema, req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        message: 'Invalid request data',
+        validationErrors: validation.errors,
+      });
+    }
+
+    const { followUpStatus, followUpNotes, followUpDate } = validation.data;
+
+    console.log(`Admin ${user.email} updating submission ${id}...`);
+
+    // Update the submission using the service
+    const updatedSubmission = await submissionsService.updateFollowUp(id, {
+      followUpStatus,
+      followUpNotes,
+      followUpDate,
+    });
+
+    console.log(`Submission ${id} updated successfully by admin ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      data: updatedSubmission,
+      message: 'Submission updated successfully',
+    });
+
+  } catch (error) {
+    console.error('Update submission API error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Failed to update submission',
     });
   }
 } 

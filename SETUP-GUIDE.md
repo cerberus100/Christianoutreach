@@ -15,7 +15,7 @@ openssl rand -base64 32
 ### Step 2: AWS Amplify Console Setup
 1. Go to [AWS Amplify Console](https://console.aws.amazon.com/amplify/)
 2. Click "New app" → "Host web app"
-3. Connect to GitHub repository: `contentkingpins/churchoutreach`
+3. Connect to GitHub repository: `AnarchoFatSats/Christianoutreach`
 4. Select branch: `main`
 5. Accept default build settings
 6. Click "Save and deploy"

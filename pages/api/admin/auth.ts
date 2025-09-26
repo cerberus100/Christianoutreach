@@ -42,14 +42,41 @@ export default async function handler(
     });
   }
 
+  // Rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(clientIP, 'LOGIN');
+
+  // Add rate limit headers
+  const rateLimitHeaders = createRateLimitHeaders(rateLimitResult.remainingAttempts, rateLimitResult.resetTime, 'LOGIN');
+  Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+
+  if (!rateLimitResult.allowed) {
+    console.warn(`Rate limit exceeded for IP: ${clientIP} at ${new Date().toISOString()}`);
+
+    return res.status(429).json({
+      success: false,
+      error: 'Too many login attempts',
+      message: 'Please try again later',
+      retryAfter: rateLimitResult.resetTime,
+    });
+  }
+
   try {
-    const { email, password }: LoginRequest = req.body;
+    // Validate request body using Zod
+    const validation = validateData(loginSchema, req.body);
+
+    if (!validation.success) {
+      console.warn(`Invalid login attempt - validation failed from IP: ${clientIP} at ${new Date().toISOString()}: ${validation.errors.join(', ')}`);
 
     // Basic validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Email and password are required',
+        error: 'Validation failed',
+        message: 'Invalid login credentials',
+        validationErrors: validation.errors,
       });
     }
 
@@ -160,6 +187,39 @@ export default async function handler(
       success: false,
       error: 'Internal server error',
       message: 'An error occurred during authentication.',
+    });
+  }
+}
+
+// Logout endpoint - POST /api/admin/auth/logout
+export async function logoutHandler(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse<{}>>
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      success: false,
+      error: 'Method not allowed',
+    });
+  }
+
+  try {
+    // Clear the auth cookies
+    clearAuthCookies(res);
+
+    res.status(200).json({
+      success: true,
+      data: {},
+      message: 'Logged out successfully',
+    });
+
+  } catch (error) {
+    console.error('Logout API error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Logout failed',
     });
   }
 } 
