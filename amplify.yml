@@ -30,13 +30,11 @@ frontend:
           fi
         - |
           if [ -z "$APP_ACCESS_KEY_ID" ]; then
-            echo "ERROR: APP_ACCESS_KEY_ID environment variable is required"
-            exit 1
+            echo "WARNING: APP_ACCESS_KEY_ID not set, using IAM role"
           fi
         - |
           if [ -z "$APP_SECRET_ACCESS_KEY" ]; then
-            echo "ERROR: APP_SECRET_ACCESS_KEY environment variable is required"
-            exit 1
+            echo "WARNING: APP_SECRET_ACCESS_KEY not set, using IAM role"
           fi
         - echo "Environment variables validated successfully"
 
