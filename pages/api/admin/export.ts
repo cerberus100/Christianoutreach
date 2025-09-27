@@ -7,7 +7,6 @@ import { readFileSync, unlinkSync } from 'fs';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { HealthSubmission } from '@/types';
-import { submissionsService } from '@/lib/submissions-service';
 
 // Helper function to format boolean values for CSV
 function formatBoolean(value: boolean | undefined): string {

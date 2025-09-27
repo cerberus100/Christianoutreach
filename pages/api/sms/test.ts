@@ -3,9 +3,6 @@ import { smsService } from '../../../lib/sms-service';
 import { requireAdmin } from '../../../lib/auth';
 import { validateData, testSmsSchema, TestSmsInput } from '../../../lib/validation';
 
-interface TestSMSRequest {
-  phoneNumber: string;
-}
 
 interface TestSMSResponse {
   success: boolean;

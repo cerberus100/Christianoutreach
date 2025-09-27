@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin } from '@/lib/auth';
 import { submissionsService } from '@/lib/submissions-service';
-import { validateData, followUpUpdateSchema, FollowUpUpdateInput } from '@/lib/validation';
+import { validateData, followUpUpdateSchema } from '@/lib/validation';
 import { HealthSubmission, ApiResponse } from '@/types';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';

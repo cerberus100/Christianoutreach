@@ -13,7 +13,6 @@ const phoneSchema = z.string()
 
 // Common string validation
 const requiredString = z.string().min(1, 'This field is required');
-const optionalString = z.string().optional();
 
 // Date validation
 const dateSchema = z.string()

@@ -3,12 +3,6 @@ import { smsService } from '../../../lib/sms-service';
 import { requireAdmin } from '../../../lib/auth';
 import { validateData, smsRequestSchema, SmsRequestInput } from '../../../lib/validation';
 
-interface SendSMSRequest {
-  phoneNumber: string;
-  message: string;
-  firstName?: string;
-  messageType?: 'welcome' | 'followup' | 'custom';
-}
 
 interface SendSMSResponse {
   success: boolean;
