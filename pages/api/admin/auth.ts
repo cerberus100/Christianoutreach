@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { setAuthTokens, clearAuthCookies, generateTokenPair, JwtPayload } from '@/lib/auth';
+import { setAuthTokens, clearAuthCookies, generateTokenPair } from '@/lib/auth';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { validateData, loginSchema, LoginInput } from '@/lib/validation';
 
@@ -16,10 +15,6 @@ interface AdminUser {
   lastLogin?: string;
 }
 
-interface LoginRequest {
-  email: string;
-  password: string;
-}
 
 interface AuthResponse {
   success: boolean;

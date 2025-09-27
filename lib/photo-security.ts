@@ -1,5 +1,5 @@
-import { S3Client, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client, S3_BUCKET } from './aws-config';
+import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from './aws-config';
 
 /**
  * Photo security configuration
@@ -188,7 +188,7 @@ export async function verifyPhotoAccess(url: string): Promise<{
 /**
  * Generate secure photo URL with expiration
  */
-export function generateSecurePhotoUrl(key: string, expiresIn: number = 3600): string {
+export function generateSecurePhotoUrl(key: string, _expiresIn: number = 3600): string {
   const bucket = PHOTO_SECURITY_CONFIG.allowedBuckets[0];
 
   // In a real implementation, you would generate a presigned URL here

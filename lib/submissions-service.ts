@@ -1,8 +1,6 @@
 import {
-  DynamoDBDocumentClient,
   ScanCommand,
   QueryCommand,
-  PutCommand,
   UpdateCommand,
   GetCommand,
   ScanCommandInput,
