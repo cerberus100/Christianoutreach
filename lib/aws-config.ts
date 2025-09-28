@@ -5,14 +5,13 @@ import { SNSClient } from '@aws-sdk/client-sns';
 
 // AWS Configuration
 const awsConfig = {
-  region: process.env.APP_AWS_REGION || 'us-east-1',
-  // Only use explicit credentials for local development
-  // In production (AWS Lambda), let SDK use IAM role credentials automatically
-  ...(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY 
+  region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
+  // Use explicit credentials if provided, otherwise use IAM role (production)
+  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
     ? {
         credentials: {
-          accessKeyId: process.env.APP_ACCESS_KEY_ID,
-          secretAccessKey: process.env.APP_SECRET_ACCESS_KEY,
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         },
       }
     : {}),
