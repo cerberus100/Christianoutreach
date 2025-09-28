@@ -15,8 +15,7 @@ frontend:
         - echo "Validating environment variables..."
         - |
           if [ -z "$JWT_SECRET" ]; then
-            echo "ERROR: JWT_SECRET environment variable is required"
-            exit 1
+            echo "WARNING: JWT_SECRET not set, using IAM role for secrets"
           fi
         - |
           if [ -z "$APP_AWS_REGION" ]; then
