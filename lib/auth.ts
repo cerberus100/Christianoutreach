@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { parse } from 'cookie';
+import { AUTH_COOKIE_NAMES } from '@/types';
 
 /**
  * JWT payload interface
