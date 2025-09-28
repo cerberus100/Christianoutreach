@@ -210,9 +210,38 @@ export function isAdmin(req: NextApiRequest): boolean {
  * Admin middleware function - guards admin-only endpoints
  */
 export function requireAdmin(req: NextApiRequest, res: NextApiResponse): JwtPayload | null {
-  const user = getUserFromToken(req);
+  // First try to get user from access token
+  let user = getUserFromToken(req);
 
+  // If no valid access token but we have a refresh token, try to refresh
   if (!user) {
+    const refreshToken = getRefreshTokenFromCookie(req);
+    if (refreshToken) {
+      try {
+        const refreshUser = getUserFromRefreshToken(req);
+        if (refreshUser && refreshUser.role === 'admin') {
+          // Generate new token pair
+          const newTokens = generateTokenPair({
+            userId: refreshUser.userId,
+            email: refreshUser.email,
+            role: refreshUser.role,
+          });
+
+          // Set new cookies
+          setAuthTokens(res, newTokens.accessToken, newTokens.refreshToken);
+
+          return {
+            ...refreshUser,
+            type: 'access',
+          };
+        }
+      } catch {
+        // Refresh token is invalid, clear cookies
+        clearAuthCookies(res);
+      }
+    }
+
+    // No valid tokens found
     res.status(401).json({
       success: false,
       error: 'Authentication required',
