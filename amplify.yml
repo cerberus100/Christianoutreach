@@ -58,20 +58,6 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-  environmentVariables:
-    - APP_ACCESS_KEY_ID=AKIAU5LH5ZMSHHKIMAKB
-    - APP_SECRET_ACCESS_KEY=danWN48RR8WADmFyptOmI9SQlGtZGPyuqnt17hh
-    - APP_AWS_REGION=us-east-1
-    - APP_DYNAMODB_TABLE_NAME=health-screening-submissions
-    - APP_DYNAMODB_CHURCHES_TABLE=health-screening-churches
-    - APP_DYNAMODB_USERS_TABLE=health-screening-users
-    - APP_S3_BUCKET_NAME=health-screening-photos-2024
-    - APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE=submissions-church-date-index
-    - APP_SNS_ENABLED=true
-    - APP_SNS_SENDER_ID=HealthCheck
-    - JWT_SECRET=q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
-    - NODE_ENV=production
-    - NEXT_TELEMETRY_DISABLED=1
   customHeaders:
     - pattern: '**'
       headers:
@@ -110,6 +96,30 @@ frontend:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'
   environmentVariables:
+    - name: APP_ACCESS_KEY_ID
+      value: AKIAU5LH5ZMSHHKIMAKB
+    - name: APP_SECRET_ACCESS_KEY
+      value: danWN48RR8WADmFyptOmI9SQlGtZGPyuqnt17hh
+    - name: APP_AWS_REGION
+      value: us-east-1
+    - name: APP_DYNAMODB_TABLE_NAME
+      value: health-screening-submissions
+    - name: APP_DYNAMODB_CHURCHES_TABLE
+      value: health-screening-churches
+    - name: APP_DYNAMODB_USERS_TABLE
+      value: health-screening-users
+    - name: APP_S3_BUCKET_NAME
+      value: health-screening-photos-2024
+    - name: APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE
+      value: submissions-church-date-index
+    - name: APP_SNS_ENABLED
+      value: true
+    - name: APP_SNS_SENDER_ID
+      value: HealthCheck
+    - name: JWT_SECRET
+      value: q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
+    - name: NODE_ENV
+      value: production
     - name: NEXT_TELEMETRY_DISABLED
       value: 1
     - name: NPM_CONFIG_PROGRESS
