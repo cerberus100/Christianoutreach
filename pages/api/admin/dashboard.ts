@@ -21,12 +21,21 @@ export default async function handler(
   if (!user) return; // Response already sent by requireAdmin
 
   try {
+    console.log('Dashboard: Starting data fetch', { table: TABLES.SUBMISSIONS });
+
     // Query all submissions from DynamoDB
-    const submissionsResult = await docClient.send(new ScanCommand({
-      TableName: TABLES.SUBMISSIONS,
-    }));
+    let submissionsResult;
+    try {
+      submissionsResult = await docClient.send(new ScanCommand({
+        TableName: TABLES.SUBMISSIONS,
+      }));
+    } catch (scanError) {
+      console.error('Dashboard: DynamoDB scan failed', { error: scanError, table: TABLES.SUBMISSIONS });
+      throw new Error(`Failed to scan submissions table: ${scanError instanceof Error ? scanError.message : 'Unknown error'}`);
+    }
 
     const submissions = (submissionsResult.Items || []) as HealthSubmission[];
+    console.log('Dashboard: Retrieved submissions', { count: submissions.length });
 
     // If no submissions, return empty dashboard with defaults
     if (submissions.length === 0) {
@@ -61,9 +70,15 @@ export default async function handler(
     }
 
     // Query all locations to get total count
-    const locationsResult = await docClient.send(new ScanCommand({
-      TableName: TABLES.CHURCHES,
-    }));
+    let locationsResult;
+    try {
+      locationsResult = await docClient.send(new ScanCommand({
+        TableName: TABLES.CHURCHES,
+      }));
+    } catch (locationsError) {
+      console.error('Dashboard: Locations scan failed', { error: locationsError, table: TABLES.CHURCHES });
+      throw new Error(`Failed to scan locations table: ${locationsError instanceof Error ? locationsError.message : 'Unknown error'}`);
+    }
 
     const totalOutreachLocations = locationsResult.Items?.length || 0;
 
