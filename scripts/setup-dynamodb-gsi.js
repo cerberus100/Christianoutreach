@@ -70,6 +70,18 @@ async function checkIfGSIExists() {
 async function createGSI() {
   console.log(`🚀 Creating GSI "${GSI_NAME}" on table "${SUBMISSIONS_TABLE}"...`);
 
+  // Determine billing mode to decide whether to include provisioned throughput
+  let billingMode;
+  try {
+    const tableDescription = await dynamoClient.send(new DescribeTableCommand({
+      TableName: SUBMISSIONS_TABLE,
+    }));
+    billingMode = tableDescription.Table?.BillingModeSummary?.BillingMode || 'PROVISIONED';
+  } catch (error) {
+    console.error('❌ Failed to retrieve table billing mode:', error.message);
+    process.exit(1);
+  }
+
   const updateParams = {
     TableName: SUBMISSIONS_TABLE,
     AttributeDefinitions: [
@@ -99,14 +111,18 @@ async function createGSI() {
           Projection: {
             ProjectionType: 'ALL',
           },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5,
-          },
         },
       },
     ],
   };
+
+  // Only include provisioned throughput settings when table uses provisioned billing
+  if (billingMode !== 'PAY_PER_REQUEST') {
+    updateParams.GlobalSecondaryIndexUpdates[0].Create.ProvisionedThroughput = {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5,
+    };
+  }
 
   try {
     const result = await dynamoClient.send(new UpdateTableCommand(updateParams));
