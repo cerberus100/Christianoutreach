@@ -19,6 +19,7 @@ export default function SubmissionsPage() {
   const [submissions, setSubmissions] = useState<HealthSubmission[]>([]);
   const [locations, setLocations] = useState<OutreachLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterRisk, setFilterRisk] = useState('');
@@ -28,6 +29,8 @@ export default function SubmissionsPage() {
   const [signedUrls, setSignedUrls] = useState<Map<string, string>>(new Map());
   const [loadingUrls, setLoadingUrls] = useState<Set<string>>(new Set());
   const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false);
+  const [nextToken, setNextToken] = useState<string | undefined>();
+  const [hasMore, setHasMore] = useState(true);
 
   // Create location name mapping
   const locationNameMap = new Map();
@@ -35,26 +38,45 @@ export default function SubmissionsPage() {
     locationNameMap.set(location.id, location.name);
   });
 
-  const fetchSubmissions = useCallback(async () => {
+  const fetchSubmissions = useCallback(async (loadMoreToken?: string) => {
     try {
       const params = new URLSearchParams();
       if (filterLocation) params.append('churchId', filterLocation);
       if (filterRisk) params.append('riskLevels', filterRisk);
       if (filterStatus) params.append('followUpStatuses', filterStatus);
       if (searchTerm) params.append('searchTerm', searchTerm);
+      if (loadMoreToken) params.append('nextToken', loadMoreToken);
 
       const response = await fetchWithAuth(`/api/admin/submissions?${params.toString()}`);
 
       const result = await response.json();
       if (result.success) {
-        setSubmissions(result.data.items);
+        if (loadMoreToken) {
+          // Loading more data - append to existing submissions
+          setSubmissions(prev => [...prev, ...result.data.items]);
+          setIsLoadingMore(false);
+        } else {
+          // Initial load - replace all submissions
+          setSubmissions(result.data.items);
+          setIsLoading(false);
+        }
+        setNextToken(result.data.nextToken);
+        setHasMore(!!result.data.nextToken);
       } else {
+        if (loadMoreToken) {
+          setIsLoadingMore(false);
+        } else {
+          setIsLoading(false);
+        }
         toast.error('Failed to load submissions');
       }
     } catch {
+      if (loadMoreToken) {
+        setIsLoadingMore(false);
+      } else {
+        setIsLoading(false);
+      }
       toast.error('Failed to load submissions');
-    } finally {
-      setIsLoading(false);
     }
   }, [filterLocation, filterRisk, filterStatus, searchTerm]);
 
@@ -72,6 +94,21 @@ export default function SubmissionsPage() {
       // Error fetching locations
     }
   }, []);
+
+  const loadMoreSubmissions = useCallback(async () => {
+    if (hasMore && nextToken && !isLoadingMore) {
+      setIsLoadingMore(true);
+      await fetchSubmissions(nextToken);
+    }
+  }, [hasMore, nextToken, isLoadingMore, fetchSubmissions]);
+
+  const handleFilterChange = useCallback(() => {
+    // Reset pagination when filters change
+    setNextToken(undefined);
+    setHasMore(true);
+    setIsLoading(true);
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   const getSignedPhotoUrl = useCallback(async (photoPath: string): Promise<string | null> => {
     // Check if we already have this URL cached
@@ -423,24 +460,31 @@ export default function SubmissionsPage() {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MagnifyingGlassIcon className="h-5 w-5 text-trust-400" />
                     </div>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="form-input pl-10"
-                      placeholder="Search by name, email, or phone..."
-                    />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            // Debounced filter change
+                            setTimeout(() => handleFilterChange(), 300);
+                          }}
+                          className="form-input pl-10"
+                          placeholder="Search by name, email, or phone..."
+                        />
                   </div>
                 </div>
 
                 {/* Location Filter */}
                 <div>
                   <label className="form-label">Location</label>
-                  <select
-                    value={filterLocation}
-                    onChange={(e) => setFilterLocation(e.target.value)}
-                    className="form-input"
-                  >
+                      <select
+                        value={filterLocation}
+                        onChange={(e) => {
+                          setFilterLocation(e.target.value);
+                          handleFilterChange();
+                        }}
+                        className="form-input"
+                      >
                     <option value="">All Locations</option>
                     {locations.map(location => (
                       <option key={location.id} value={location.id}>{location.name}</option>
@@ -451,11 +495,14 @@ export default function SubmissionsPage() {
                 {/* Risk Filter */}
                 <div>
                   <label className="form-label">Risk Level</label>
-                  <select
-                    value={filterRisk}
-                    onChange={(e) => setFilterRisk(e.target.value)}
-                    className="form-input"
-                  >
+                      <select
+                        value={filterRisk}
+                        onChange={(e) => {
+                          setFilterRisk(e.target.value);
+                          handleFilterChange();
+                        }}
+                        className="form-input"
+                      >
                     <option value="">All Risk Levels</option>
                     <option value="Low">Low</option>
                     <option value="Moderate">Moderate</option>
@@ -467,11 +514,14 @@ export default function SubmissionsPage() {
                 {/* Status Filter */}
                 <div>
                   <label className="form-label">Follow-up Status</label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="form-input"
-                  >
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => {
+                          setFilterStatus(e.target.value);
+                          handleFilterChange();
+                        }}
+                        className="form-input"
+                      >
                     <option value="">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Contacted">Contacted</option>
@@ -616,6 +666,26 @@ export default function SubmissionsPage() {
               )}
             </div>
           </div>
+
+          {/* Load More Button */}
+          {hasMore && !isLoading && submissions.length > 0 && (
+            <div className="text-center py-6">
+              <button
+                onClick={loadMoreSubmissions}
+                disabled={isLoadingMore}
+                className="btn-primary flex items-center mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Submissions'
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Submission Details Modal */}
