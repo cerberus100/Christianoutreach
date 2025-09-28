@@ -146,7 +146,8 @@ export function verifyRefreshToken(req: NextApiRequest): boolean {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'refresh';
   } catch {
     return false;
@@ -163,7 +164,8 @@ export function getUserFromToken(req: NextApiRequest): JwtPayload | null {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'access' ? decoded : null;
   } catch {
     return null;
@@ -180,7 +182,8 @@ export function getUserFromRefreshToken(req: NextApiRequest): JwtPayload | null 
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+    const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'refresh' ? decoded : null;
   } catch {
     return null;
@@ -244,7 +247,8 @@ export function hasValidToken(req: NextApiRequest): boolean {
   // If we have an access token, verify it's valid
   if (accessToken) {
     try {
-      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+      const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
+      const decoded = jwt.verify(accessToken, secret) as JwtPayload;
       return decoded.type === 'access';
     } catch {
       // Access token is invalid/expired
@@ -254,7 +258,8 @@ export function hasValidToken(req: NextApiRequest): boolean {
   // If we have a refresh token, verify it's valid
   if (refreshToken) {
     try {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fallback-secret') as JwtPayload;
+      const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
+      const decoded = jwt.verify(refreshToken, secret) as JwtPayload;
       return decoded.type === 'refresh';
     } catch {
       // Refresh token is invalid/expired
@@ -268,16 +273,14 @@ export function hasValidToken(req: NextApiRequest): boolean {
  * Generate access token (4 hours)
  */
 export function generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
-  }
+  const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
 
   const tokenPayload: JwtPayload = {
     ...payload,
     type: 'access',
   };
 
-  return jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+  return jwt.sign(tokenPayload, secret, {
     expiresIn: '4h',
   });
 }
@@ -286,16 +289,14 @@ export function generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
  * Generate refresh token (30 days)
  */
 export function generateRefreshToken(payload: Omit<JwtPayload, 'type'>): string {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
-  }
+  const secret = process.env.JWT_SECRET || 'fallback-secret-for-development';
 
   const tokenPayload: JwtPayload = {
     ...payload,
     type: 'refresh',
   };
 
-  return jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+  return jwt.sign(tokenPayload, secret, {
     expiresIn: '30d',
   });
 }
