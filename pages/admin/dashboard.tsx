@@ -4,6 +4,7 @@ import Head from 'next/head';
 import AdminDashboard from '@/components/AdminDashboard';
 import { DashboardStats } from '@/types';
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from '@/lib/api-client';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -11,20 +12,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const fetchDashboardData = useCallback(async (token: string) => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        router.push('/admin/login');
-        return;
-      }
+      const response = await fetchWithAuth('/api/admin/dashboard');
 
       const result = await response.json();
 
@@ -33,47 +23,31 @@ export default function DashboardPage() {
       } else {
         toast.error('Failed to load dashboard data');
       }
-          } catch {
-        toast.error('Failed to load dashboard data');
-      } finally {
+    } catch {
+      toast.error('Failed to load dashboard data');
+    } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, []);
 
   // Check authentication on mount
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
     setIsAuthenticated(true);
-    fetchDashboardData(token);
+    fetchDashboardData();
   }, [router, fetchDashboardData]);
 
   const handleExportData = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        router.push('/admin/login');
-        return;
-      }
-
       toast.success('Export started! This may take a moment...');
-      
-      const response = await fetch('/api/admin/export', {
+
+      const response = await fetchWithAuth('/api/admin/export', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           format: 'csv',
-          dateRange: {
-            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            end: new Date().toISOString(),
+          filters: {
+            startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            endDate: new Date().toISOString(),
           },
-          includeFields: ['all'],
         }),
       });
 
@@ -92,17 +66,21 @@ export default function DashboardPage() {
       } else {
         toast.error('Export failed');
       }
-          } catch {
-        toast.error('Export failed');
-      }
+    } catch {
+      toast.error('Export failed');
+    }
   };
 
   const handleViewSubmissions = () => {
     router.push('/admin/submissions');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+  const handleLogout = async () => {
+    try {
+      await fetchWithAuth('/api/admin/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
     toast.success('Logged out successfully');
     router.push('/admin/login');
   };
@@ -173,7 +151,7 @@ export default function DashboardPage() {
           stats={stats}
           onExportData={handleExportData}
           onViewSubmissions={handleViewSubmissions}
-          onRefresh={() => fetchDashboardData(localStorage.getItem('adminToken') || '')}
+          onRefresh={fetchDashboardData}
         />
       </div>
     </>

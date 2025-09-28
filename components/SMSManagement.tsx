@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  DevicePhoneMobileIcon, 
+import {
+  DevicePhoneMobileIcon,
   PaperAirplaneIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from '@/lib/api-client';
 
 interface SMSManagementProps {
   submissions: any[];
@@ -26,7 +27,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
   const [activeTab, setActiveTab] = useState<'send' | 'history'>('send');
   const [isLoading, setIsLoading] = useState(false);
   const [smsHistory, setSMSHistory] = useState<SMSHistory[]>([]);
-  
+
   // Form state
   const [selectedSubmission, setSelectedSubmission] = useState<string>('');
   const [messageType, setMessageType] = useState<'welcome' | 'followup' | 'custom'>('welcome');
@@ -56,12 +57,8 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
         firstName = 'Participant';
       }
 
-      const response = await fetch('/api/sms/send', {
+      const response = await fetchWithAuth('/api/sms/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-        },
         body: JSON.stringify({
           phoneNumber,
           message: messageType === 'custom' ? customMessage : undefined,
@@ -74,7 +71,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
 
       if (result.success) {
         toast.success('SMS sent successfully!');
-        
+
         // Add to history
         const newHistoryItem: SMSHistory = {
           id: Date.now().toString(),
@@ -84,14 +81,14 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
           timestamp: new Date(),
           messageId: result.data?.messageId,
         };
-        
+
         setSMSHistory(prev => [newHistoryItem, ...prev]);
-        
+
         // Reset form
         setSelectedSubmission('');
         setCustomMessage('');
         setCustomPhoneNumber('');
-        
+
         // Refresh submissions if needed
         onRefresh();
       } else {
@@ -108,18 +105,15 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
   const testSMSService = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/sms/test', {
+      const response = await fetchWithAuth('/api/sms/test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           phoneNumber: '+1xxxxxxxxxx', // Production phone number
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         toast.success('SMS service is working correctly!');
       } else {
@@ -172,7 +166,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
             </button>
           </div>
         </div>
-        
+
         <div className="flex">
           <button
             onClick={() => setActiveTab('send')}
@@ -223,7 +217,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="flex items-center">
                   <span className="text-sm text-gray-500 mr-2">OR</span>
                   <input
@@ -281,7 +275,7 @@ export default function SMSManagement({ submissions, onRefresh }: SMSManagementP
               <div className="bg-gray-50 p-4 rounded-md">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Message Preview:</h4>
                 <p className="text-sm text-gray-600 italic">
-                  {getMessagePreview(messageType, selectedSubmission ? 
+                  {getMessagePreview(messageType, selectedSubmission ?
                     submissions.find(s => s.id === selectedSubmission)?.firstName || 'Participant' :
                     'Participant'
                   )}

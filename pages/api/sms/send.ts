@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { smsService } from '../../../lib/sms-service';
-import { verifyAuth } from '../../../lib/auth';
+import { requireAdmin } from '../../../lib/auth';
 
 interface SendSMSRequest {
   phoneNumber: string;
@@ -31,7 +31,9 @@ export default async function handler(
   }
 
   // Verify admin authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({
       success: false,
       error: 'Unauthorized - Admin access required',

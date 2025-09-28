@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useForm } from 'react-hook-form';
-import { 
-  UserIcon, 
-  LockClosedIcon, 
-  EyeIcon, 
+import {
+  UserIcon,
+  LockClosedIcon,
+  EyeIcon,
   EyeSlashIcon,
   HeartIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from '@/lib/api-client';
 
 interface LoginForm {
   email: string;
@@ -21,7 +22,7 @@ export default function AdminLogin() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -30,13 +31,10 @@ export default function AdminLogin() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    
+
     try {
-      const response = await fetch('/api/admin/auth', {
+      const response = await fetchWithAuth('/api/admin/auth', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
 
@@ -44,10 +42,7 @@ export default function AdminLogin() {
 
       if (result.success) {
         toast.success('Login successful!');
-        
-        // Store auth token
-        localStorage.setItem('adminToken', result.token);
-        
+
         // Redirect to dashboard
         router.push('/admin/dashboard');
       } else {
@@ -185,7 +180,7 @@ export default function AdminLogin() {
                 </div>
                 <div className="mt-3 text-center">
                   <p className="text-xs text-trust-500">
-                    This is a secure area for authorized personnel only. 
+                    This is a secure area for authorized personnel only.
                     All access attempts are logged and monitored.
                   </p>
                 </div>

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { smsService } from '../../../lib/sms-service';
+import { requireAdmin } from '../../../lib/auth';
 
 interface TestSMSRequest {
   phoneNumber: string;
@@ -24,6 +25,15 @@ export default async function handler(
     return res.status(405).json({
       success: false,
       error: 'Method not allowed',
+    });
+  }
+
+  try {
+    requireAdmin(req);
+  } catch {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized - Admin access required',
     });
   }
 

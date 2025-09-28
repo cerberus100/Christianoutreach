@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { 
+import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
   EyeIcon,
@@ -12,6 +12,7 @@ import { HealthSubmission, OutreachLocation } from '@/types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import HealthAnalysisPortfolio from '../../components/GeneticTestingPortfolio';
+import { fetchWithAuth } from '@/lib/api-client';
 
 export default function SubmissionsPage() {
   const router = useRouter();
@@ -34,30 +35,19 @@ export default function SubmissionsPage() {
     locationNameMap.set(location.id, location.name);
   });
 
-  const fetchSubmissions = useCallback(async (token: string) => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (filterLocation) params.append('location', filterLocation);
-      if (filterRisk) params.append('riskLevel', filterRisk);
-      if (filterStatus) params.append('followUpStatus', filterStatus);
-      if (searchTerm) params.append('search', searchTerm);
+      if (filterLocation) params.append('churchId', filterLocation);
+      if (filterRisk) params.append('riskLevels', filterRisk);
+      if (filterStatus) params.append('followUpStatuses', filterStatus);
+      if (searchTerm) params.append('searchTerm', searchTerm);
 
-      const response = await fetch(`/api/admin/submissions?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        router.push('/admin/login');
-        return;
-      }
+      const response = await fetchWithAuth(`/api/admin/submissions?${params.toString()}`);
 
       const result = await response.json();
       if (result.success) {
-        setSubmissions(result.data);
+        setSubmissions(result.data.items);
       } else {
         toast.error('Failed to load submissions');
       }
@@ -66,16 +56,11 @@ export default function SubmissionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, filterLocation, filterRisk, filterStatus, searchTerm]);
+  }, [filterLocation, filterRisk, filterStatus, searchTerm]);
 
-  const fetchLocations = useCallback(async (token: string) => {
+  const fetchLocations = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/locations', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchWithAuth('/api/admin/locations');
 
       if (response.ok) {
         const result = await response.json();
@@ -102,15 +87,8 @@ export default function SubmissionsPage() {
     try {
       setLoadingUrls(prev => new Set(prev).add(photoPath));
 
-      const token = localStorage.getItem('adminToken');
-      if (!token) return null;
-
-      const response = await fetch('/api/admin/photo-url', {
+      const response = await fetchWithAuth('/api/admin/photo-url', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ photoPath }),
       });
 
@@ -209,17 +187,8 @@ export default function SubmissionsPage() {
 
   // Check authentication and fetch data
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-    
-    // Fetch both submissions and locations
-    Promise.all([
-      fetchSubmissions(token),
-      fetchLocations(token)
-    ]);
+    setIsLoading(true);
+    Promise.all([fetchSubmissions(), fetchLocations()]);
   }, [router, fetchSubmissions, fetchLocations]);
 
   // Handle Escape key to close modals
@@ -240,16 +209,9 @@ export default function SubmissionsPage() {
   }, [selectedSubmission]);
 
   const updateFollowUpStatus = async (submissionId: string, status: string, notes?: string) => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
-
     try {
-      const response = await fetch(`/api/admin/submissions/${submissionId}`, {
+      const response = await fetchWithAuth(`/api/admin/submissions/${submissionId}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           followUpStatus: status,
           followUpNotes: notes,
@@ -261,7 +223,7 @@ export default function SubmissionsPage() {
 
       if (result.success) {
         toast.success('Follow-up status updated!');
-        fetchSubmissions(token);
+        fetchSubmissions();
       } else {
         toast.error(result.error || 'Update failed');
       }
@@ -271,29 +233,19 @@ export default function SubmissionsPage() {
   };
 
   const exportSubmissions = async () => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
-
     try {
       toast.success('Export started! This may take a moment...');
       
-      const response = await fetch('/api/admin/export', {
+      const response = await fetchWithAuth('/api/admin/export', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           format: 'csv',
-          dateRange: {
-            start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-            end: new Date().toISOString(),
-          },
-          includeFields: ['all'],
-          filterBy: {
-            churchId: filterLocation || undefined,
-            riskLevel: filterRisk || undefined,
-            followUpStatus: filterStatus || undefined,
+          filters: {
+            startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+            endDate: new Date().toISOString(),
+            churchIds: filterLocation ? [filterLocation] : undefined,
+            riskLevels: filterRisk ? [filterRisk] : undefined,
+            followUpStatuses: filterStatus ? [filterStatus] : undefined,
           },
         }),
       });
@@ -321,18 +273,8 @@ export default function SubmissionsPage() {
   const refreshPhotos = async () => {
     setIsRefreshingPhotos(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        toast.error('Authentication required');
-        return;
-      }
-
-      const response = await fetch('/api/admin/refresh-photos', {
+      const response = await fetchWithAuth('/api/admin/refresh-photos', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       if (response.ok) {
@@ -350,10 +292,7 @@ export default function SubmissionsPage() {
           setSignedUrls(new Map());
           
           // Reload submissions to get updated URLs
-          const token = localStorage.getItem('adminToken');
-          if (token) {
-            fetchSubmissions(token);
-          }
+          fetchSubmissions();
         } else {
           toast.error(result.error || 'Photo refresh failed');
         }
@@ -547,7 +486,7 @@ export default function SubmissionsPage() {
           {/* Submissions Table */}
           <div className="card">
             <div className="card-body">
-              {filteredSubmissions.length === 0 ? (
+              {submissions.length === 0 ? (
                 <div className="text-center py-12">
                   <UserIcon className="w-16 h-16 text-trust-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-trust-900 mb-2">No submissions found</h3>
@@ -820,6 +759,7 @@ export default function SubmissionsPage() {
                   <div>
                     <h4 className="text-lg font-medium text-trust-900 mb-3">Health Responses</h4>
                     <div className="bg-white border border-trust-200 rounded-lg p-4 space-y-3">
+                      {/* Family History */}
                       <div className="flex justify-between items-center">
                         <span className="text-trust-700">Family History - Diabetes:</span>
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.familyHistoryDiabetes ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
@@ -839,10 +779,65 @@ export default function SubmissionsPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Family History - Asthma:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.familyHistoryAsthma ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
+                          {selectedSubmission.familyHistoryAsthma ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-trust-700">Eczema History:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.eczemaHistory ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
+                          {selectedSubmission.eczemaHistory ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
                         <span className="text-trust-700">Nerve Symptoms:</span>
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.nerveSymptoms ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
                           {selectedSubmission.nerveSymptoms ? 'Yes' : 'No'}
                         </span>
+                      </div>
+
+                      {/* Current Health Conditions */}
+                      <div className="border-t border-trust-200 pt-3 mt-3">
+                        <h5 className="text-sm font-medium text-trust-600 mb-2">Current Health Conditions</h5>
+                        <div className="flex justify-between items-center">
+                          <span className="text-trust-700">Sex:</span>
+                          <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                            {selectedSubmission.sex || 'Not specified'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-trust-700">Cardiovascular History:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.cardiovascularHistory ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
+                            {selectedSubmission.cardiovascularHistory ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-trust-700">Chronic Kidney Disease:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.chronicKidneyDisease ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
+                            {selectedSubmission.chronicKidneyDisease ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-trust-700">Diabetes:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSubmission.diabetes ? 'bg-orange-100 text-orange-800' : 'bg-health-100 text-health-800'}`}>
+                            {selectedSubmission.diabetes ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-trust-700">Insurance Type:</span>
+                          <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                            {selectedSubmission.insuranceType || 'Not specified'}
+                          </span>
+                        </div>
+                        {selectedSubmission.insuranceId && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-trust-700">Insurance ID:</span>
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                              {selectedSubmission.insuranceId}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

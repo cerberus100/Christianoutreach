@@ -74,7 +74,7 @@ export default async function handler(
       uploadDir: tmpdir(),
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
-      maxFields: 20,
+      maxFields: 50, // Increased to accommodate all form fields and allow for future expansion
       multiples: false,
     });
 

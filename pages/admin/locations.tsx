@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { OutreachLocation } from '@/types';
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from '@/lib/api-client';
 
 interface LocationForm {
   name: string;
@@ -40,20 +41,9 @@ export default function LocationsPage() {
     setValue,
   } = useForm<LocationForm>();
 
-  const fetchLocations = useCallback(async (token: string) => {
+  const fetchLocations = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/locations', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        router.push('/admin/login');
-        return;
-      }
+      const response = await fetchWithAuth('/api/admin/locations');
 
       const result = await response.json();
       if (result.success) {
@@ -67,16 +57,11 @@ export default function LocationsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, []);
 
   // Check authentication and fetch locations
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-    fetchLocations(token);
+    fetchLocations();
   }, [router, fetchLocations]);
 
   // Close dropdown when clicking outside
@@ -95,22 +80,15 @@ export default function LocationsPage() {
   }, [openQRDropdown]);
 
   const onSubmit = async (data: LocationForm) => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
-
     try {
-      const url = editingLocation 
+      const url = editingLocation
         ? `/api/admin/locations/${editingLocation.id}`
         : '/api/admin/locations';
-      
+
       const method = editingLocation ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
 
@@ -121,7 +99,7 @@ export default function LocationsPage() {
         setShowAddForm(false);
         setEditingLocation(null);
         reset();
-        fetchLocations(token);
+        fetchLocations();
       } else {
         toast.error(result.error || 'Operation failed');
       }
@@ -144,15 +122,9 @@ export default function LocationsPage() {
   const handleDelete = async (location: OutreachLocation) => {
     if (!confirm(`Are you sure you want to delete "${location.name}"?`)) return;
 
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
-
     try {
-      const response = await fetch(`/api/admin/locations/${location.id}`, {
+      const response = await fetchWithAuth(`/api/admin/locations/${location.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
       const status = response.status;
@@ -160,24 +132,21 @@ export default function LocationsPage() {
 
       if (result.success) {
         toast.success('Location deleted!');
-        fetchLocations(token);
+        fetchLocations();
       } else if (status === 409) {
         const confirmArchive = confirm(
           `${location.name} has submissions. Do you want to archive this location instead?\n\nArchiving will deactivate the location without deleting any submissions.`
         );
         if (!confirmArchive) return;
 
-        const archiveResponse = await fetch(`/api/admin/locations/${location.id}?action=archive`, {
+        const archiveResponse = await fetchWithAuth(`/api/admin/locations/${location.id}?action=archive`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
         });
 
         const archiveResult = await archiveResponse.json();
         if (archiveResponse.ok && archiveResult.success) {
           toast.success('Location archived!');
-          fetchLocations(token);
+          fetchLocations();
         } else {
           toast.error(archiveResult.error || 'Archive failed');
         }
@@ -200,7 +169,7 @@ export default function LocationsPage() {
       const formUrl = `${window.location.origin}/form/${location.id}`;
       const endpoint = style === 'prayer' ? '/api/admin/qr-code-prayer' : '/api/admin/qr-code';
       const qrResponse = await fetch(`${endpoint}?url=${encodeURIComponent(formUrl)}&name=${encodeURIComponent(location.name)}`);
-      
+
       if (qrResponse.ok) {
         const blob = await qrResponse.blob();
         const url = window.URL.createObjectURL(blob);
@@ -256,7 +225,7 @@ export default function LocationsPage() {
                   Outreach Locations
                 </h1>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => {
@@ -420,7 +389,7 @@ export default function LocationsPage() {
                     <tbody>
                       {locations.map((location) => {
                         const formUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/form/${location.id}`;
-                        
+
                         return (
                           <tr key={location.id} className="border-b border-trust-100 hover:bg-trust-50">
                             <td className="py-3 px-4">

@@ -233,16 +233,49 @@ export interface ApiResponse<T = unknown> {
   message?: string;
 }
 
-export interface ExportOptions {
-  format: 'csv' | 'excel';
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  includeFields: string[];
-  filterBy?: {
-    churchId?: string;
-    riskLevel?: string;
-    followUpStatus?: string;
-  };
+export interface PaginatedResult<T> {
+  items: T[];
+  lastEvaluatedKey?: string;
+  nextToken?: string;
+}
+
+export type SubmissionFollowUpStatus = NonNullable<HealthSubmission['followUpStatus']>;
+
+export interface UpdateSubmissionPayload {
+  followUpStatus?: SubmissionFollowUpStatus;
+  followUpNotes?: string;
+  followUpDate?: string;
+}
+
+export interface SubmissionsQueryParams {
+  churchId?: string;
+  startDate?: string;
+  endDate?: string;
+  riskLevels?: string[];
+  followUpStatuses?: SubmissionFollowUpStatus[];
+  searchTerm?: string;
+  pageSize?: number;
+  exclusiveStartKey?: Record<string, unknown>;
+}
+
+export interface ExportFilterOptions {
+  startDate?: string;
+  endDate?: string;
+  churchIds?: string[];
+  riskLevels?: string[];
+  followUpStatuses?: SubmissionFollowUpStatus[];
+}
+
+export const AUTH_COOKIE_NAMES = {
+  accessToken: 'admin_access_token',
+  refreshToken: 'admin_refresh_token',
+} as const; 
+
+export interface AuthTokenClaims {
+  userId: string;
+  email: string;
+  role: string;
+  name?: string;
+  exp: number;
+  iat: number;
 } 

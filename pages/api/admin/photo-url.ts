@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { s3Client, S3_BUCKET } from '@/lib/aws-config';
+import { requireAdmin } from '@/lib/auth';
+import { z } from 'zod';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -10,18 +12,9 @@ interface ApiResponse<T = any> {
   message?: string;
 }
 
-function verifyAuth(req: NextApiRequest): boolean {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return false;
-    
-    // For now, basic auth verification
-    // In production, you'd verify the JWT token here
-    return true;
-  } catch {
-    return false;
-  }
-}
+const requestSchema = z.object({
+  photoPath: z.string().min(1, 'Photo path is required'),
+});
 
 export default async function handler(
   req: NextApiRequest,
@@ -34,8 +27,9 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({
       success: false,
       error: 'Unauthorized',
@@ -43,14 +37,12 @@ export default async function handler(
   }
 
   try {
-    const { photoPath } = req.body;
-
-    if (!photoPath) {
-      return res.status(400).json({
-        success: false,
-        error: 'Photo path is required',
-      });
+    const parseResult = requestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ success: false, error: 'Invalid request body' });
     }
+
+    const { photoPath } = parseResult.data;
 
     // Extract S3 key from the existing selfieUrl
     // selfieUrl format: https://bucket-name.s3.amazonaws.com/submissions/id/filename

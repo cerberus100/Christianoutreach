@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { signAuthToken, setAuthCookie } from '@/lib/auth';
 
 interface AdminUser {
   id: string;
@@ -20,7 +20,6 @@ interface LoginRequest {
 
 interface AuthResponse {
   success: boolean;
-  token?: string;
   user?: {
     id: string;
     email: string;
@@ -118,7 +117,6 @@ export default async function handler(
       });
     }
 
-    // Generate JWT token
     const tokenPayload = {
       userId: adminUser.id,
       email: adminUser.email,
@@ -126,11 +124,8 @@ export default async function handler(
       name: adminUser.name,
     };
 
-    const token = jwt.sign(
-      tokenPayload,
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '8h' }
-    );
+    const token = signAuthToken(tokenPayload);
+    setAuthCookie(res, token);
 
     // Update last login timestamp (optional for demo)
     if (adminUser.id !== 'demo-admin-001') {
@@ -144,7 +139,6 @@ export default async function handler(
     // Successful login
     return res.status(200).json({
       success: true,
-      token,
       user: {
         id: adminUser.id,
         email: adminUser.email,

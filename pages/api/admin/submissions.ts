@@ -1,121 +1,92 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-import { ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
-import { docClient, TABLES } from '@/lib/aws-config';
-import { HealthSubmission, ApiResponse } from '@/types';
+import { z } from 'zod';
+import { requireAdmin } from '@/lib/auth';
+import { fetchSubmissionsPage, decodeCursor } from '@/lib/submissions-service';
+import { ApiResponse, HealthSubmission, SubmissionFollowUpStatus } from '@/types';
 
-// Production mode - always use DynamoDB
-
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
+const querySchema = z.object({
+  churchId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  riskLevels: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value.split(',').filter(Boolean) : undefined)),
+  followUpStatuses: z
+    .string()
+    .optional()
+    .transform((value) => {
+      if (!value) return undefined;
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item): item is SubmissionFollowUpStatus =>
+          ['Pending', 'Contacted', 'Scheduled', 'Completed'].includes(item)
+        );
+    }),
+  searchTerm: z.string().optional(),
+  pageSize: z
+    .string()
+    .optional()
+    .transform((value) => (value ? Number(value) : undefined))
+    .refine((value) => value === undefined || (Number.isInteger(value) && value > 0 && value <= 200), {
+      message: 'pageSize must be between 1 and 200',
+    }),
+  cursor: z.string().optional(),
+});
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse<HealthSubmission[]>>
+  res: NextApiResponse<ApiResponse<HealthSubmission[] | { items: HealthSubmission[]; nextToken?: string }>>
 ) {
   if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: 'Method not allowed',
-    });
-  }
-
-  // Verify authentication
-  if (!verifyAuth(req)) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
-    console.log('Fetching submissions from DynamoDB...');
-    console.log('Table name:', TABLES.SUBMISSIONS);
+    requireAdmin(req);
+  } catch {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
 
-    // Query all submissions from DynamoDB
-    console.log('Querying DynamoDB for submissions...');
-    
-    const scanParams: ScanCommandInput = {
-      TableName: TABLES.SUBMISSIONS,
-      // We'll scan the entire table for now
-      // In production with large datasets, consider using Query with GSI
-    };
+  const parseResult = querySchema.safeParse(req.query);
+  if (!parseResult.success) {
+    return res.status(400).json({ success: false, error: 'Invalid query parameters' });
+  }
 
-    let submissions: HealthSubmission[] = [];
-    try {
-      const result = await docClient.send(new ScanCommand(scanParams));
-      submissions = (result.Items || []) as HealthSubmission[];
-      console.log(`Retrieved ${submissions.length} submissions from DynamoDB`);
-    } catch (error) {
-      console.error('DynamoDB scan error:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Database query failed',
-        message: 'Failed to retrieve submissions from database',
-      });
-    }
+  const {
+    churchId,
+    startDate,
+    endDate,
+    riskLevels,
+    followUpStatuses,
+    searchTerm,
+    pageSize,
+    cursor,
+  } = parseResult.data;
 
-    // Apply filters if provided
-    const { location, riskLevel, followUpStatus, search } = req.query;
-    
-    let filteredSubmissions = [...submissions];
-
-    if (location) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.churchId === location);
-    }
-
-    if (riskLevel) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.healthRiskLevel === riskLevel);
-    }
-
-    if (followUpStatus) {
-      filteredSubmissions = filteredSubmissions.filter(s => s.followUpStatus === followUpStatus);
-    }
-
-    if (search) {
-      const searchTerm = search.toString().toLowerCase();
-      filteredSubmissions = filteredSubmissions.filter(s => 
-        s.firstName.toLowerCase().includes(searchTerm) ||
-        s.lastName.toLowerCase().includes(searchTerm) ||
-        s.email?.toLowerCase().includes(searchTerm) ||
-        s.phone?.includes(searchTerm) ||
-        s.id.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Sort by submission date (newest first)
-    filteredSubmissions.sort((a, b) => 
-      new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()
-    );
-
-    console.log(`Returning ${filteredSubmissions.length} filtered submissions`);
-
-    res.status(200).json({
-      success: true,
-      data: filteredSubmissions,
-      message: `Retrieved ${filteredSubmissions.length} submissions`,
+  try {
+    const page = await fetchSubmissionsPage({
+      churchId,
+      startDate,
+      endDate,
+      riskLevels,
+      followUpStatuses,
+      searchTerm,
+      pageSize,
+      exclusiveStartKey: decodeCursor(cursor),
     });
 
+    return res.status(200).json({
+      success: true,
+      data: {
+        items: page.items,
+        nextToken: page.nextToken,
+      },
+      message: `Retrieved ${page.items.length} submissions`,
+    });
   } catch (error) {
     console.error('Submissions API error:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: 'Failed to retrieve submissions',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to retrieve submissions' });
   }
 } 

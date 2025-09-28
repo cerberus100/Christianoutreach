@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { HeadObjectCommand } from '@aws-sdk/client-s3';
 import { docClient, s3Client, TABLES, S3_BUCKET } from '@/lib/aws-config';
+import { requireAdmin } from '@/lib/auth';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -19,17 +20,6 @@ interface RefreshResult {
   errors: string[];
 }
 
-function verifyAuth(req: NextApiRequest): boolean {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return false;
-    
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse<RefreshResult>>
@@ -41,8 +31,9 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({
       success: false,
       error: 'Unauthorized',

@@ -1,25 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
 import { DashboardStats, HealthSubmission, ApiResponse } from '@/types';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
-
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { requireAdmin } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,8 +16,9 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({
       success: false,
       error: 'Unauthorized',

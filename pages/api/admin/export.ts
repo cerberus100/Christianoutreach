@@ -1,36 +1,30 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-import { createObjectCsvWriter } from 'csv-writer';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { readFileSync, unlinkSync } from 'fs';
+import { z } from 'zod';
+import { stringify } from 'csv-stringify/sync';
+import { requireAdmin } from '@/lib/auth';
+import { fetchAllSubmissions } from '@/lib/submissions-service';
+import { HealthSubmission, SubmissionFollowUpStatus, SubmissionsQueryParams } from '@/types';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
-import { HealthSubmission } from '@/types';
 
-// Middleware to verify JWT token
-function verifyAuth(req: NextApiRequest): boolean {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
+const exportRequestSchema = z.object({
+  format: z.literal('csv').default('csv'),
+  filters: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      churchIds: z.array(z.string()).optional(),
+      riskLevels: z.array(z.string()).optional(),
+      followUpStatuses: z.array(z.string()).optional(),
+    })
+    .optional(),
+});
 
-  try {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Helper function to format boolean values for CSV
 function formatBoolean(value: boolean | undefined): string {
   if (value === undefined || value === null) return '';
   return value ? 'Yes' : 'No';
 }
 
-// Helper function to safely get nested object values
 function getNestedValue(obj: any, path: string): string {
   const keys = path.split('.');
   let value = obj;
@@ -51,166 +45,187 @@ export default async function handler(
     });
   }
 
-  // Verify authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({
       success: false,
       error: 'Unauthorized',
     });
   }
 
+  const parseResult = exportRequestSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid export request payload',
+    });
+  }
+
+  const { format, filters } = parseResult.data;
+  if (format !== 'csv') {
+    return res.status(400).json({
+      success: false,
+      error: 'Only CSV export is currently supported',
+    });
+  }
+
   try {
-    // Query all submissions from DynamoDB
-    console.log('Exporting submissions from DynamoDB...');
-    
-    const submissionsResult = await docClient.send(new ScanCommand({
-      TableName: TABLES.SUBMISSIONS,
-    }));
+    const submissions: HealthSubmission[] = [];
+    const baseFilters: SubmissionsQueryParams = {
+      startDate: filters?.startDate,
+      endDate: filters?.endDate,
+      riskLevels: filters?.riskLevels,
+      followUpStatuses: filters?.followUpStatuses as SubmissionFollowUpStatus[] | undefined,
+    };
 
-    const submissions = (submissionsResult.Items || []) as HealthSubmission[];
-
-    // Query locations to get names for churchId mapping
-    const locationsResult = await docClient.send(new ScanCommand({
-      TableName: TABLES.CHURCHES,
-    }));
-
-    const locationMap = new Map();
-    if (locationsResult.Items) {
-      locationsResult.Items.forEach((location: any) => {
-        locationMap.set(location.id, location.name);
-      });
+    if (filters?.churchIds && filters.churchIds.length > 0) {
+      for (const churchId of filters.churchIds) {
+        const chunk = await fetchAllSubmissions({
+          ...baseFilters,
+          churchId,
+        });
+        submissions.push(...chunk);
+      }
+    } else {
+      const chunk = await fetchAllSubmissions(baseFilters);
+      submissions.push(...chunk);
     }
 
-    // Transform submissions data for CSV export
-    const exportData = submissions.map(submission => ({
-      id: submission.id,
-      firstName: submission.firstName,
-      lastName: submission.lastName,
-      dateOfBirth: submission.dateOfBirth,
-      phone: submission.phone || '',
-      email: submission.email || '',
-      churchId: submission.churchId,
-      churchName: locationMap.get(submission.churchId) || submission.churchId,
-      submissionDate: submission.submissionDate,
-      
-      // Health screening responses
-      familyHistoryDiabetes: formatBoolean(submission.familyHistoryDiabetes),
-      familyHistoryHighBP: formatBoolean(submission.familyHistoryHighBP),
-      familyHistoryDementia: formatBoolean(submission.familyHistoryDementia),
-      nerveSymptoms: formatBoolean(submission.nerveSymptoms),
-      sex: submission.sex || '',
-      cardiovascularHistory: formatBoolean(submission.cardiovascularHistory),
-      chronicKidneyDisease: formatBoolean(submission.chronicKidneyDisease),
-      diabetes: formatBoolean(submission.diabetes),
-      insuranceType: submission.insuranceType || '',
-      
-      // Calculated fields
-      estimatedBMI: submission.estimatedBMI?.toString() || '',
-      bmiCategory: submission.bmiCategory || '',
-      estimatedAge: submission.estimatedAge?.toString() || '',
-      estimatedGender: submission.estimatedGender || '',
-      healthRiskLevel: submission.healthRiskLevel || '',
-      healthRiskScore: submission.healthRiskScore?.toString() || '',
-      
-      // Follow-up
-      followUpStatus: submission.followUpStatus || '',
-      tcpaConsent: formatBoolean(submission.tcpaConsent),
-      
-      // Device Information
-      ipAddress: getNestedValue(submission, 'networkInfo.ipAddress'),
-      deviceType: getNestedValue(submission, 'deviceInfo.device.type'),
-      browser: getNestedValue(submission, 'deviceInfo.browser.name') + ' ' + getNestedValue(submission, 'deviceInfo.browser.version'),
-      operatingSystem: getNestedValue(submission, 'deviceInfo.os.name') + ' ' + getNestedValue(submission, 'deviceInfo.os.version'),
-      submissionFingerprint: submission.submissionFingerprint || '',
-      timezone: getNestedValue(submission, 'deviceInfo.timezone'),
-      screenResolution: getNestedValue(submission, 'deviceInfo.screen.width') + 'x' + getNestedValue(submission, 'deviceInfo.screen.height'),
-      userAgent: getNestedValue(submission, 'deviceInfo.userAgent'),
-      sessionId: submission.sessionId || '',
-    }));
+    const locationsResult = await docClient.send(
+      new ScanCommand({
+        TableName: TABLES.CHURCHES,
+        ProjectionExpression: '#id, #name',
+        ExpressionAttributeNames: {
+          '#id': 'id',
+          '#name': 'name',
+        },
+      })
+    );
 
-    // Define CSV headers
-    const csvHeaders = [
-      { id: 'id', title: 'Submission ID' },
-      { id: 'firstName', title: 'First Name' },
-      { id: 'lastName', title: 'Last Name' },
-      { id: 'dateOfBirth', title: 'Date of Birth' },
-      { id: 'phone', title: 'Phone Number' },
-      { id: 'email', title: 'Email Address' },
-      { id: 'churchId', title: 'Church ID' },
-      { id: 'churchName', title: 'Church Name' },
-      { id: 'submissionDate', title: 'Submission Date' },
-      
-      // Health screening
-      { id: 'familyHistoryDiabetes', title: 'Family History - Diabetes' },
-      { id: 'familyHistoryHighBP', title: 'Family History - High BP' },
-      { id: 'familyHistoryDementia', title: 'Family History - Dementia' },
-      { id: 'nerveSymptoms', title: 'Nerve Symptoms' },
-      { id: 'sex', title: 'Sex' },
-      { id: 'cardiovascularHistory', title: 'Cardiovascular History' },
-      { id: 'chronicKidneyDisease', title: 'Chronic Kidney Disease' },
-      { id: 'diabetes', title: 'Diabetes' },
-      { id: 'insuranceType', title: 'Insurance Type' },
-      
-      // Calculated
-      { id: 'estimatedBMI', title: 'Estimated BMI' },
-      { id: 'bmiCategory', title: 'BMI Category' },
-      { id: 'estimatedAge', title: 'Estimated Age' },
-      { id: 'estimatedGender', title: 'Estimated Gender' },
-      { id: 'healthRiskLevel', title: 'Health Risk Level' },
-      { id: 'healthRiskScore', title: 'Health Risk Score' },
-      
-      // Follow-up
-      { id: 'followUpStatus', title: 'Follow-up Status' },
-      { id: 'tcpaConsent', title: 'TCPA Consent' },
-      
-      // Device and Network Information
-      { id: 'ipAddress', title: 'IP Address' },
-      { id: 'deviceType', title: 'Device Type' },
-      { id: 'browser', title: 'Browser' },
-      { id: 'operatingSystem', title: 'Operating System' },
-      { id: 'submissionFingerprint', title: 'Submission Fingerprint' },
-      { id: 'timezone', title: 'Timezone' },
-      { id: 'screenResolution', title: 'Screen Resolution' },
-      { id: 'userAgent', title: 'User Agent' },
-      { id: 'sessionId', title: 'Session ID' },
+    const locationMap = new Map<string, string>();
+    locationsResult.Items?.forEach((location: any) => {
+      if (location.id && location.name) {
+        locationMap.set(location.id, location.name);
+      }
+    });
+
+    const exportRows = submissions
+      .sort(
+        (a, b) =>
+          new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()
+      )
+      .map((submission) => ({
+        id: submission.id,
+        firstName: submission.firstName,
+        lastName: submission.lastName,
+        dateOfBirth: submission.dateOfBirth,
+        phone: submission.phone || '',
+        email: submission.email || '',
+        churchId: submission.churchId,
+        churchName: locationMap.get(submission.churchId) || submission.churchId,
+        submissionDate: submission.submissionDate,
+        familyHistoryDiabetes: formatBoolean(submission.familyHistoryDiabetes),
+        familyHistoryHighBP: formatBoolean(submission.familyHistoryHighBP),
+        familyHistoryDementia: formatBoolean(submission.familyHistoryDementia),
+        familyHistoryAsthma: formatBoolean(submission.familyHistoryAsthma),
+        eczemaHistory: formatBoolean(submission.eczemaHistory),
+        nerveSymptoms: formatBoolean(submission.nerveSymptoms),
+        sex: submission.sex || '',
+        cardiovascularHistory: formatBoolean(submission.cardiovascularHistory),
+        chronicKidneyDisease: formatBoolean(submission.chronicKidneyDisease),
+        diabetes: formatBoolean(submission.diabetes),
+        insuranceType: submission.insuranceType || '',
+        insuranceId: submission.insuranceId || '',
+        estimatedBMI: submission.estimatedBMI?.toString() || '',
+        bmiCategory: submission.bmiCategory || '',
+        estimatedAge: submission.estimatedAge?.toString() || '',
+        estimatedGender: submission.estimatedGender || '',
+        healthRiskLevel: submission.healthRiskLevel || '',
+        healthRiskScore: submission.healthRiskScore?.toString() || '',
+        followUpStatus: submission.followUpStatus || '',
+        tcpaConsent: formatBoolean(submission.tcpaConsent),
+        ipAddress: getNestedValue(submission, 'networkInfo.ipAddress'),
+        deviceType: getNestedValue(submission, 'deviceInfo.device.type'),
+        browser:
+          getNestedValue(submission, 'deviceInfo.browser.name') +
+          ' ' +
+          getNestedValue(submission, 'deviceInfo.browser.version'),
+        operatingSystem:
+          getNestedValue(submission, 'deviceInfo.os.name') +
+          ' ' +
+          getNestedValue(submission, 'deviceInfo.os.version'),
+        submissionFingerprint: submission.submissionFingerprint || '',
+        timezone: getNestedValue(submission, 'deviceInfo.timezone'),
+        screenResolution:
+          getNestedValue(submission, 'deviceInfo.screen.width') +
+          'x' +
+          getNestedValue(submission, 'deviceInfo.screen.height'),
+        userAgent: getNestedValue(submission, 'deviceInfo.userAgent'),
+        sessionId: submission.sessionId || '',
+      }));
+
+    const columns = [
+      { key: 'id', header: 'Submission ID' },
+      { key: 'firstName', header: 'First Name' },
+      { key: 'lastName', header: 'Last Name' },
+      { key: 'dateOfBirth', header: 'Date of Birth' },
+      { key: 'phone', header: 'Phone Number' },
+      { key: 'email', header: 'Email Address' },
+      { key: 'churchId', header: 'Church ID' },
+      { key: 'churchName', header: 'Church Name' },
+      { key: 'submissionDate', header: 'Submission Date' },
+      { key: 'familyHistoryDiabetes', header: 'Family History - Diabetes' },
+      { key: 'familyHistoryHighBP', header: 'Family History - High BP' },
+      { key: 'familyHistoryDementia', header: 'Family History - Dementia' },
+      { key: 'familyHistoryAsthma', header: 'Family History - Asthma' },
+      { key: 'eczemaHistory', header: 'Eczema History' },
+      { key: 'nerveSymptoms', header: 'Nerve Symptoms' },
+      { key: 'sex', header: 'Sex' },
+      { key: 'cardiovascularHistory', header: 'Cardiovascular History' },
+      { key: 'chronicKidneyDisease', header: 'Chronic Kidney Disease' },
+      { key: 'diabetes', header: 'Diabetes' },
+      { key: 'insuranceType', header: 'Insurance Type' },
+      { key: 'insuranceId', header: 'Insurance ID' },
+      { key: 'estimatedBMI', header: 'Estimated BMI' },
+      { key: 'bmiCategory', header: 'BMI Category' },
+      { key: 'estimatedAge', header: 'Estimated Age' },
+      { key: 'estimatedGender', header: 'Estimated Gender' },
+      { key: 'healthRiskLevel', header: 'Health Risk Level' },
+      { key: 'healthRiskScore', header: 'Health Risk Score' },
+      { key: 'followUpStatus', header: 'Follow-up Status' },
+      { key: 'tcpaConsent', header: 'TCPA Consent' },
+      { key: 'ipAddress', header: 'IP Address' },
+      { key: 'deviceType', header: 'Device Type' },
+      { key: 'browser', header: 'Browser' },
+      { key: 'operatingSystem', header: 'Operating System' },
+      { key: 'submissionFingerprint', header: 'Submission Fingerprint' },
+      { key: 'timezone', header: 'Timezone' },
+      { key: 'screenResolution', header: 'Screen Resolution' },
+      { key: 'userAgent', header: 'User Agent' },
+      { key: 'sessionId', header: 'Session ID' },
     ];
 
-    // Create temporary file
-    const fileName = `health-screening-export-${Date.now()}.csv`;
-    const filePath = join(tmpdir(), fileName);
+    const fileName = `health-screening-export-${new Date().toISOString()}.csv`;
 
-    // Create CSV writer
-    const csvWriter = createObjectCsvWriter({
-      path: filePath,
-      header: csvHeaders,
-    });
-
-    // Write data to CSV
-    await csvWriter.writeRecords(exportData);
-
-    // Read the file and send as response
-    const fileBuffer = readFileSync(filePath);
-    
-    // Set headers for download
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Length', fileBuffer.length);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`
+    );
 
-    // Clean up temporary file
-    unlinkSync(filePath);
-
-    console.log(`Exported ${exportData.length} submissions to CSV`);
-
-    // Send file
-    res.status(200).send(fileBuffer);
-
+    const csv = stringify(exportRows, { header: true, columns });
+    res.send(csv);
   } catch (error) {
     console.error('Export API error:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: 'Failed to export data',
-    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: 'Failed to export data',
+      });
+    } else {
+      res.destroy(error as Error);
+    }
   }
 } 

@@ -2,14 +2,16 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { GetCommand, UpdateCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ApiResponse, OutreachLocation } from '@/types';
-import { verifyAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse<OutreachLocation | null>>
 ) {
   // Verify authentication
-  if (!verifyAuth(req)) {
+  try {
+    requireAdmin(req);
+  } catch {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
