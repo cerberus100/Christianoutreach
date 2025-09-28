@@ -9,6 +9,8 @@ frontend:
         - echo "Clearing npm cache..."
         - npm cache clean --force
         - echo "Installing dependencies..."
+        - echo "Temporarily unsetting NODE_ENV to install devDependencies..."
+        - unset NODE_ENV
         - npm ci
         - echo "Verifying TypeScript installation..."
         - npm list typescript @types/react @types/node || echo "Some TypeScript packages missing"
@@ -117,7 +119,7 @@ frontend:
     - name: APP_SNS_SENDER_ID
       value: HealthCheck
     - name: JWT_SECRET
-      value: q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
+      value: "q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8="
     - name: NODE_ENV
       value: production
     - name: NEXT_TELEMETRY_DISABLED
@@ -128,4 +130,3 @@ frontend:
       value: warn
     - name: DISABLE_ESLINT_PLUGIN
       value: true
-      
