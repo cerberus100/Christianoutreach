@@ -58,6 +58,20 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+  environmentVariables:
+    - APP_ACCESS_KEY_ID=AKIAU5LH5ZMSHHKIMAKB
+    - APP_SECRET_ACCESS_KEY=danWN48RR8WADmFyptOmI9SQlGtZGPyuqnt17hh
+    - APP_AWS_REGION=us-east-1
+    - APP_DYNAMODB_TABLE_NAME=health-screening-submissions
+    - APP_DYNAMODB_CHURCHES_TABLE=health-screening-churches
+    - APP_DYNAMODB_USERS_TABLE=health-screening-users
+    - APP_S3_BUCKET_NAME=health-screening-photos-2024
+    - APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE=submissions-church-date-index
+    - APP_SNS_ENABLED=true
+    - APP_SNS_SENDER_ID=HealthCheck
+    - JWT_SECRET=q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
+    - NODE_ENV=production
+    - NEXT_TELEMETRY_DISABLED=1
   customHeaders:
     - pattern: '**'
       headers:
@@ -104,3 +118,4 @@ frontend:
       value: warn
     - name: DISABLE_ESLINT_PLUGIN
       value: true
+      
