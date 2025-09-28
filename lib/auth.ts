@@ -60,7 +60,7 @@ const getCookieOptions = (
  * Set access token as HttpOnly cookie
  */
 export function setAccessTokenCookie(res: NextApiResponse, token: string): void {
-  const cookieName = 'health-screening-access';
+  const cookieName = AUTH_COOKIE_NAMES.accessToken;
   const options = getCookieOptions(true, 'access');
 
   res.setHeader('Set-Cookie', `${cookieName}=${token}; ${Object.entries(options)
@@ -72,7 +72,7 @@ export function setAccessTokenCookie(res: NextApiResponse, token: string): void 
  * Set refresh token as HttpOnly cookie
  */
 export function setRefreshTokenCookie(res: NextApiResponse, token: string): void {
-  const cookieName = 'health-screening-refresh';
+  const cookieName = AUTH_COOKIE_NAMES.refreshToken;
   const options = getCookieOptions(true, 'refresh');
 
   res.setHeader('Set-Cookie', `${cookieName}=${token}; ${Object.entries(options)
@@ -88,10 +88,10 @@ export function clearAuthCookies(res: NextApiResponse): void {
   const refreshOptions = getCookieOptions(true, 'refresh');
 
   res.setHeader('Set-Cookie', [
-    `health-screening-access=; ${Object.entries(accessOptions)
+    `${AUTH_COOKIE_NAMES.accessToken}=; ${Object.entries(accessOptions)
       .map(([key, value]) => `${key}=${value}`)
       .join('; ')}; expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-    `health-screening-refresh=; ${Object.entries(refreshOptions)
+    `${AUTH_COOKIE_NAMES.refreshToken}=; ${Object.entries(refreshOptions)
       .map(([key, value]) => `${key}=${value}`)
       .join('; ')}; expires=Thu, 01 Jan 1970 00:00:00 GMT`
   ]);
@@ -111,7 +111,7 @@ export function setAuthTokens(res: NextApiResponse, accessToken: string, refresh
 export function getAccessTokenFromCookie(req: NextApiRequest): string | null {
   try {
     const cookies = parse(req.headers.cookie || '');
-    return cookies['health-screening-access'] || null;
+    return cookies[AUTH_COOKIE_NAMES.accessToken] || null;
   } catch {
     return null;
   }
@@ -123,7 +123,7 @@ export function getAccessTokenFromCookie(req: NextApiRequest): string | null {
 export function getRefreshTokenFromCookie(req: NextApiRequest): string | null {
   try {
     const cookies = parse(req.headers.cookie || '');
-    return cookies['health-screening-refresh'] || null;
+    return cookies[AUTH_COOKIE_NAMES.refreshToken] || null;
   } catch {
     return null;
   }
