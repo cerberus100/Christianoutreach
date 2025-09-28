@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { requireAdmin } from '@/lib/auth';
 import { DashboardStats, HealthSubmission, ApiResponse } from '@/types';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient, TABLES } from '@/lib/aws-config';
-import { requireAdmin } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,14 +16,9 @@ export default async function handler(
     });
   }
 
-  try {
-    requireAdmin(req);
-  } catch {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
-  }
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     // Query all submissions from DynamoDB

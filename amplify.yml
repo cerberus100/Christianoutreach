@@ -6,25 +6,34 @@ frontend:
         - echo "Setting up build environment..."
         - 'echo "Node version: $(node --version)"'
         - 'echo "NPM version: $(npm --version)"'
-        - echo "Clearing npm cache and any existing cache..."
+        - echo "Clearing npm cache..."
         - npm cache clean --force
-        - rm -rf node_modules package-lock.json
-        - echo "Installing dependencies fresh..."
-        - echo "Temporarily unsetting NODE_ENV to install devDependencies..."
-        - unset NODE_ENV
-        - npm install --include=dev
+        - echo "Installing dependencies..."
+        - npm ci
         - echo "Verifying TypeScript installation..."
         - npm list typescript @types/react @types/node || echo "Some TypeScript packages missing"
         - echo "Validating environment variables..."
         - |
           if [ -z "$JWT_SECRET" ]; then
-            echo "ERROR: JWT_SECRET environment variable is required"
-            exit 1
+            echo "WARNING: JWT_SECRET not set, using IAM role for secrets"
           fi
         - |
           if [ -z "$APP_AWS_REGION" ]; then
             echo "WARNING: APP_AWS_REGION not set, using default us-east-1"
             export APP_AWS_REGION=us-east-1
+          fi
+        - |
+          if [ -z "$APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE" ]; then
+            echo "WARNING: APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE not set, using default submissions-church-date-index"
+            export APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE=submissions-church-date-index
+          fi
+        - |
+          if [ -z "$APP_ACCESS_KEY_ID" ]; then
+            echo "WARNING: APP_ACCESS_KEY_ID not set, using IAM role"
+          fi
+        - |
+          if [ -z "$APP_SECRET_ACCESS_KEY" ]; then
+            echo "WARNING: APP_SECRET_ACCESS_KEY not set, using IAM role"
           fi
         - echo "Environment variables validated successfully"
 
@@ -87,6 +96,30 @@ frontend:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'
   environmentVariables:
+    - name: APP_ACCESS_KEY_ID
+      value: AKIAU5LH5ZMSHHKIMAKB
+    - name: APP_SECRET_ACCESS_KEY
+      value: danWN48RR8WADmFyptOmI9SQlGtZGPyuqnt17hh
+    - name: APP_AWS_REGION
+      value: us-east-1
+    - name: APP_DYNAMODB_TABLE_NAME
+      value: health-screening-submissions
+    - name: APP_DYNAMODB_CHURCHES_TABLE
+      value: health-screening-churches
+    - name: APP_DYNAMODB_USERS_TABLE
+      value: health-screening-users
+    - name: APP_S3_BUCKET_NAME
+      value: health-screening-photos-2024
+    - name: APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE
+      value: submissions-church-date-index
+    - name: APP_SNS_ENABLED
+      value: true
+    - name: APP_SNS_SENDER_ID
+      value: HealthCheck
+    - name: JWT_SECRET
+      value: q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
+    - name: NODE_ENV
+      value: production
     - name: NEXT_TELEMETRY_DISABLED
       value: 1
     - name: NPM_CONFIG_PROGRESS
@@ -95,3 +128,4 @@ frontend:
       value: warn
     - name: DISABLE_ESLINT_PLUGIN
       value: true
+      

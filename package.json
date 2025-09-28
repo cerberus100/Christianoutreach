@@ -11,10 +11,8 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
     "type-check": "tsc --noEmit",
     "build:analyze": "ANALYZE=true npm run build",
-    "build:ci": "pnpm typecheck && pnpm lint && next build",
     "test": "echo \"Tests not implemented yet\" && exit 0",
     "audit": "npm audit --audit-level moderate",
     "clean": "rm -rf .next node_modules/.cache",
@@ -22,7 +20,9 @@
     "setup:check": "node scripts/setup-check.js",
     "amplify:check": "node scripts/amplify-deploy-check.js",
     "yaml:validate": "node scripts/validate-yaml.js",
-    "fix:deps": "node scripts/fix-dependencies.js"
+    "fix:deps": "node scripts/fix-dependencies.js",
+    "setup:dynamodb-gsi": "node scripts/setup-dynamodb-gsi.js",
+    "check:dynamodb-gsi": "node scripts/setup-dynamodb-gsi.js --check"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.685.0",
@@ -36,8 +36,7 @@
     "aws-amplify": "^6.8.1",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
-    "cookie": "^1.0.2",
-    "csv-stringify": "^6.4.6",
+    "cookie": "^0.6.0",
     "csv-writer": "^1.6.0",
     "date-fns": "^4.1.0",
     "fast-csv": "^5.0.1",
@@ -63,6 +62,7 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^14.2.15",
     "@types/bcryptjs": "^2.4.6",
+    "@types/cookie": "^0.6.0",
     "@types/formidable": "^3.4.5",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",

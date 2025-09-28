@@ -1,13 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { smsService } from '../../../lib/sms-service';
 import { requireAdmin } from '../../../lib/auth';
+import { validateData, smsRequestSchema, SmsRequestInput } from '../../../lib/validation';
 
-interface SendSMSRequest {
-  phoneNumber: string;
-  message: string;
-  firstName?: string;
-  messageType?: 'welcome' | 'followup' | 'custom';
-}
 
 interface SendSMSResponse {
   success: boolean;
@@ -31,25 +26,22 @@ export default async function handler(
   }
 
   // Verify admin authentication
-  try {
-    requireAdmin(req);
-  } catch {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized - Admin access required',
-    });
-  }
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
-    const { phoneNumber, message, firstName, messageType }: SendSMSRequest = req.body;
+    // Validate request body using Zod
+    const validation = validateData(smsRequestSchema, req.body);
 
-    // Validate input
-    if (!phoneNumber) {
+    if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Phone number is required',
+        error: 'Validation failed',
+        message: `Invalid SMS request data: ${validation.errors.join(', ')}`,
       });
     }
+
+    const { phoneNumber, message, firstName, messageType }: SmsRequestInput = validation.data;
 
     // Check if SMS service is enabled
     if (!smsService.isEnabled()) {

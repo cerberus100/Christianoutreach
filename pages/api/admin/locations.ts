@@ -1,23 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v4 as uuidv4 } from 'uuid';
+import { requireAdmin } from '@/lib/auth';
 import { OutreachLocation, ApiResponse } from '@/types';
 import { docClient, TABLES } from '@/lib/aws-config';
 import { ScanCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { requireAdmin } from '@/lib/auth';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse<OutreachLocation | OutreachLocation[]>>
 ) {
-  // Verify authentication
-  try {
-    requireAdmin(req);
-  } catch {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
-  }
+  // Verify admin authentication
+  const user = requireAdmin(req, res);
+  if (!user) return; // Response already sent by requireAdmin
 
   try {
     switch (req.method) {

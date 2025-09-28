@@ -35,6 +35,11 @@ export const TABLES = {
   USERS: process.env.APP_DYNAMODB_USERS_TABLE || 'health-screening-users',
 };
 
+// DynamoDB Global Secondary Indexes
+export const GSI = {
+  SUBMISSIONS_CHURCH_DATE: process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE || 'submissions-church-date-index',
+};
+
 // S3 Bucket
 export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || 'health-screening-photos-2024'; 
 
