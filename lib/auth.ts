@@ -211,7 +211,7 @@ export function isAdmin(req: NextApiRequest): boolean {
  */
 export function requireAdmin(req: NextApiRequest, res: NextApiResponse): JwtPayload | null {
   // First try to get user from access token
-  let user = getUserFromToken(req);
+  const user = getUserFromToken(req);
 
   // If no valid access token but we have a refresh token, try to refresh
   if (!user) {
