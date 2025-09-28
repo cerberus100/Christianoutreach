@@ -168,7 +168,7 @@ export default function LocationsPage() {
     try {
       const formUrl = `${window.location.origin}/form/${location.id}`;
       const endpoint = style === 'prayer' ? '/api/admin/qr-code-prayer' : '/api/admin/qr-code';
-      const qrResponse = await fetch(`${endpoint}?url=${encodeURIComponent(formUrl)}&name=${encodeURIComponent(location.name)}`);
+      const qrResponse = await fetchWithAuth(`${endpoint}?url=${encodeURIComponent(formUrl)}&name=${encodeURIComponent(location.name)}`);
 
       if (qrResponse.ok) {
         const blob = await qrResponse.blob();
