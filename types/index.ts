@@ -235,7 +235,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface PaginatedResult<T> {
   items: T[];
-  lastEvaluatedKey?: string;
+  lastEvaluatedKey?: Record<string, unknown>;
   nextToken?: string;
 }
 

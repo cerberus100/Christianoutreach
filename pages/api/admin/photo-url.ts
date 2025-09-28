@@ -28,7 +28,7 @@ export default async function handler(
   }
 
   try {
-    requireAdmin(req);
+    requireAdmin(req, res);
   } catch {
     return res.status(401).json({
       success: false,
