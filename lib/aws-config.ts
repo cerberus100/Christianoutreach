@@ -5,7 +5,7 @@ import { SNSClient } from '@aws-sdk/client-sns';
 
 // AWS Configuration
 const awsConfig = {
-  region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
+  region: 'us-east-1', // Hardcode region for Amplify
   // In Amplify, use the default credential chain (IAM role)
   // Do not set credentials explicitly to avoid conflicts
 };
