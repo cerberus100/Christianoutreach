@@ -51,17 +51,21 @@ export default function SubmissionsPage() {
 
       const result = await response.json();
       if (result.success) {
+        // Handle both array and paginated response formats
+        const items = Array.isArray(result.data) ? result.data : (result.data?.items || []);
+        const nextToken = Array.isArray(result.data) ? undefined : result.data?.nextToken;
+        
         if (loadMoreToken) {
           // Loading more data - append to existing submissions
-          setSubmissions(prev => [...prev, ...result.data.items]);
+          setSubmissions(prev => [...prev, ...items]);
           setIsLoadingMore(false);
         } else {
           // Initial load - replace all submissions
-          setSubmissions(result.data.items);
+          setSubmissions(items);
           setIsLoading(false);
         }
-        setNextToken(result.data.nextToken);
-        setHasMore(!!result.data.nextToken);
+        setNextToken(nextToken);
+        setHasMore(!!nextToken);
       } else {
         if (loadMoreToken) {
           setIsLoadingMore(false);
