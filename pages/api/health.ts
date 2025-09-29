@@ -47,6 +47,10 @@ export default async function handler(
       return acc;
     }, {} as Record<string, string>);
 
+    // Debug JWT_SECRET specifically
+    debugInfo.jwt_secret_length = process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0;
+    debugInfo.jwt_secret_first_chars = process.env.JWT_SECRET ? process.env.JWT_SECRET.substring(0, 5) : 'NONE';
+
     // Check environment variables
     const requiredEnvVars = [
       'JWT_SECRET',
