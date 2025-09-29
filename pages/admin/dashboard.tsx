@@ -14,16 +14,22 @@ export default function DashboardPage() {
 
   const fetchDashboardData = useCallback(async () => {
     try {
+      console.log('Frontend: Fetching dashboard data...');
       const response = await fetchWithAuth('/api/admin/dashboard');
+      console.log('Frontend: Dashboard response status:', response.status);
 
       const result = await response.json();
+      console.log('Frontend: Dashboard response:', result);
 
       if (result.success) {
         setStats(result.data);
+        console.log('Frontend: Dashboard data set successfully');
       } else {
-        toast.error('Failed to load dashboard data');
+        console.error('Frontend: Dashboard API returned error:', result);
+        toast.error(`Failed to load dashboard data: ${result.error || result.message}`);
       }
-    } catch {
+    } catch (error) {
+      console.error('Frontend: Dashboard fetch error:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
