@@ -39,6 +39,14 @@ export default async function handler(
   const debugInfo: Record<string, any> = {};
 
   try {
+    // Debug ALL environment variables
+    debugInfo.all_env_vars = Object.keys(process.env).filter(key => 
+      key.startsWith('APP_') || key.startsWith('JWT_') || key.startsWith('AWS_') || key.startsWith('NODE_')
+    ).reduce((acc, key) => {
+      acc[key] = process.env[key] ? 'SET' : 'MISSING';
+      return acc;
+    }, {} as Record<string, string>);
+
     // Check environment variables
     const requiredEnvVars = [
       'JWT_SECRET',
