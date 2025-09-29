@@ -57,8 +57,11 @@ export default async function handler(
       'APP_DYNAMODB_TABLE_NAME'
     ];
     
-    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-    debugInfo.env_vars = missingEnvVars;
+    const missingEnvVars = requiredEnvVars.filter(envVar => {
+      const value = process.env[envVar];
+      return !value || value.length === 0;
+    });
+    debugInfo.env_vars = missingEnvVars.length > 0 ? missingEnvVars : ['all_present'];
     debugInfo.aws_region = process.env.APP_AWS_REGION;
     debugInfo.table_name = TABLES.SUBMISSIONS;
     
