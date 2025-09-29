@@ -2,12 +2,13 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SNSClient } from '@aws-sdk/client-sns';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 // AWS Configuration
 const awsConfig = {
   region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
-  // In production (AWS Lambda), always use IAM role credentials
-  // Never use explicit credentials in Amplify environment
+  // Explicitly use IAM role credentials in Amplify environment
+  credentials: fromNodeProviderChain(),
 };
 
 // DynamoDB Client
