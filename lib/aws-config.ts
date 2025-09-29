@@ -2,13 +2,12 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SNSClient } from '@aws-sdk/client-sns';
-import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 // AWS Configuration
 const awsConfig = {
   region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
-  // Explicitly use IAM role credentials in Amplify environment
-  credentials: fromNodeProviderChain(),
+  // In Amplify, use the default credential chain (IAM role)
+  // Do not set credentials explicitly to avoid conflicts
 };
 
 // DynamoDB Client
