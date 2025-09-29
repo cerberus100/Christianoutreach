@@ -20,25 +20,22 @@ export const s3Client = new S3Client(awsConfig);
 // SNS Client
 export const snsClient = new SNSClient(awsConfig);
 
-// Table Names
+// Table Names - HARDCODED since environment variables aren't reaching Lambda
 export const TABLES = {
-  SUBMISSIONS: process.env.APP_DYNAMODB_TABLE_NAME || 'health-screening-submissions',
-  CHURCHES: process.env.APP_DYNAMODB_CHURCHES_TABLE || 'health-screening-churches',
-  USERS: process.env.APP_DYNAMODB_USERS_TABLE || 'health-screening-users',
+  SUBMISSIONS: 'health-screening-submissions',
+  CHURCHES: 'health-screening-churches',
+  USERS: 'health-screening-users',
 };
 
-// DynamoDB Global Secondary Indexes
+// DynamoDB Global Secondary Indexes - HARDCODED since env vars aren't reaching Lambda
 export const GSI = {
-  SUBMISSIONS_CHURCH_DATE: process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE || 'submissions-church-date-index',
+  SUBMISSIONS_CHURCH_DATE: 'submissions-church-date-index',
 };
 
-// S3 Bucket
-export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || 'health-screening-photos-2024'; 
+// S3 Bucket - HARDCODED since env vars aren't reaching Lambda
+export const S3_BUCKET = 'health-screening-photos-2024'; 
 
-// Secondary Indexes
+// Secondary Indexes - HARDCODED since env vars aren't reaching Lambda
 export const INDEXES = {
-  SUBMISSIONS_BY_CHURCH_DATE:
-    process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE ||
-    process.env.APP_DYNAMODB_SUBMISSIONS_GSI ||
-    undefined,
+  SUBMISSIONS_BY_CHURCH_DATE: 'submissions-church-date-index',
 };
