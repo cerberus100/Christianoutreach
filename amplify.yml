@@ -97,5 +97,26 @@ frontend:
       headers:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'
-  # Environment variables are managed through Amplify Console
-  # Not defined in amplify.yml to avoid conflicts
+  environmentVariables:
+    - name: JWT_SECRET
+      value: q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=
+    - name: APP_DYNAMODB_TABLE_NAME
+      value: health-screening-submissions
+    - name: APP_DYNAMODB_CHURCHES_TABLE
+      value: health-screening-churches
+    - name: APP_DYNAMODB_USERS_TABLE
+      value: health-screening-users
+    - name: APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE
+      value: submissions-church-date-index
+    - name: APP_S3_BUCKET_NAME
+      value: health-screening-photos-2024
+    - name: APP_SNS_ENABLED
+      value: true
+    - name: APP_SNS_SENDER_ID
+      value: HealthCheck
+    - name: APP_AWS_REGION
+      value: us-east-1
+    - name: NODE_ENV
+      value: production
+    - name: NEXT_TELEMETRY_DISABLED
+      value: 1
