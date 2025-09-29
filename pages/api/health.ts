@@ -42,9 +42,6 @@ export default async function handler(
     // Check environment variables
     const requiredEnvVars = [
       'JWT_SECRET',
-      'APP_AWS_REGION',
-      'APP_ACCESS_KEY_ID',
-      'APP_SECRET_ACCESS_KEY',
       'APP_DYNAMODB_TABLE_NAME'
     ];
     
@@ -60,15 +57,8 @@ export default async function handler(
     try {
       // Create a DynamoDB client with the same config as our document client
       const dynamoClient = new DynamoDBClient({
-        region: process.env.APP_AWS_REGION || 'us-east-1',
-        ...(process.env.APP_ACCESS_KEY_ID && process.env.APP_SECRET_ACCESS_KEY 
-          ? {
-              credentials: {
-                accessKeyId: process.env.APP_ACCESS_KEY_ID,
-                secretAccessKey: process.env.APP_SECRET_ACCESS_KEY,
-              },
-            }
-          : {}),
+        region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
+        // Use IAM role credentials in production (no explicit credentials)
       });
 
       await dynamoClient.send(new DescribeTableCommand({
