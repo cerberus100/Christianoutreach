@@ -15,9 +15,13 @@ frontend:
         - echo "Verifying TypeScript installation..."
         - npm list typescript @types/react @types/node || echo "Some TypeScript packages missing"
         - echo "Validating environment variables..."
+        - echo "DEBUG - JWT_SECRET is $JWT_SECRET"
+        - echo "DEBUG - APP_DYNAMODB_TABLE_NAME is $APP_DYNAMODB_TABLE_NAME"
+        - echo "DEBUG - APP_AWS_REGION is $APP_AWS_REGION"
         - |
           if [ -z "$JWT_SECRET" ]; then
-            echo "WARNING: JWT_SECRET not set, using IAM role for secrets"
+            echo "ERROR: JWT_SECRET environment variable is required"
+            exit 1
           fi
         - |
           if [ -z "$APP_AWS_REGION" ]; then
