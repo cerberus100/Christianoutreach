@@ -147,8 +147,8 @@ export function verifyRefreshToken(req: NextApiRequest): boolean {
   }
 
   try {
-    // HARDCODED since environment variables aren't reaching Lambda
-    const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+    // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+    const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
     const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'refresh';
   } catch {
@@ -166,8 +166,8 @@ export function getUserFromToken(req: NextApiRequest): JwtPayload | null {
   }
 
   try {
-    // HARDCODED since environment variables aren't reaching Lambda
-    const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+    // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+    const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
     const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'access' ? decoded : null;
   } catch {
@@ -185,8 +185,8 @@ export function getUserFromRefreshToken(req: NextApiRequest): JwtPayload | null 
   }
 
   try {
-    // HARDCODED since environment variables aren't reaching Lambda
-    const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+    // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+    const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
     const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded.type === 'refresh' ? decoded : null;
   } catch {
@@ -280,8 +280,8 @@ export function hasValidToken(req: NextApiRequest): boolean {
   // If we have an access token, verify it's valid
   if (accessToken) {
     try {
-      // HARDCODED since environment variables aren't reaching Lambda
-      const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+      // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+      const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
       const decoded = jwt.verify(accessToken, secret) as JwtPayload;
       return decoded.type === 'access';
     } catch {
@@ -292,8 +292,8 @@ export function hasValidToken(req: NextApiRequest): boolean {
   // If we have a refresh token, verify it's valid
   if (refreshToken) {
     try {
-      // HARDCODED since environment variables aren't reaching Lambda
-      const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+      // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+      const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
       const decoded = jwt.verify(refreshToken, secret) as JwtPayload;
       return decoded.type === 'refresh';
     } catch {
@@ -308,8 +308,8 @@ export function hasValidToken(req: NextApiRequest): boolean {
  * Generate access token (4 hours)
  */
 export function generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
-  // HARDCODED since environment variables aren't reaching Lambda
-  const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+  // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+  const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
 
   const tokenPayload: JwtPayload = {
     ...payload,
@@ -325,8 +325,8 @@ export function generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
  * Generate refresh token (30 days)
  */
 export function generateRefreshToken(payload: Omit<JwtPayload, 'type'>): string {
-  // HARDCODED since environment variables aren't reaching Lambda
-  const secret = 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
+  // TODO: Fix Amplify environment variable issue and use process.env.JWT_SECRET
+  const secret = process.env.JWT_SECRET || 'q(rY0b9qTgT6ZsdpflqNJXltC6Q9PRkRX2dEj6tY8=';
 
   const tokenPayload: JwtPayload = {
     ...payload,

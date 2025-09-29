@@ -20,22 +20,22 @@ export const s3Client = new S3Client(awsConfig);
 // SNS Client
 export const snsClient = new SNSClient(awsConfig);
 
-// Table Names - HARDCODED since environment variables aren't reaching Lambda
+// Table Names - Use fallback values since environment variables aren't reaching Lambda
 export const TABLES = {
-  SUBMISSIONS: 'health-screening-submissions',
-  CHURCHES: 'health-screening-churches',
-  USERS: 'health-screening-users',
+  SUBMISSIONS: process.env.APP_DYNAMODB_TABLE_NAME || 'health-screening-submissions',
+  CHURCHES: process.env.APP_DYNAMODB_CHURCHES_TABLE || 'health-screening-churches',
+  USERS: process.env.APP_DYNAMODB_USERS_TABLE || 'health-screening-users',
 };
 
-// DynamoDB Global Secondary Indexes - HARDCODED since env vars aren't reaching Lambda
+// DynamoDB Global Secondary Indexes - Use fallback values
 export const GSI = {
-  SUBMISSIONS_CHURCH_DATE: 'submissions-church-date-index',
+  SUBMISSIONS_CHURCH_DATE: process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE || 'submissions-church-date-index',
 };
 
-// S3 Bucket - HARDCODED since env vars aren't reaching Lambda
-export const S3_BUCKET = 'health-screening-photos-2024'; 
+// S3 Bucket - Use fallback values
+export const S3_BUCKET = process.env.APP_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || 'health-screening-photos-2024'; 
 
-// Secondary Indexes - HARDCODED since env vars aren't reaching Lambda
+// Secondary Indexes - Use fallback values
 export const INDEXES = {
-  SUBMISSIONS_BY_CHURCH_DATE: 'submissions-church-date-index',
+  SUBMISSIONS_BY_CHURCH_DATE: process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE || 'submissions-church-date-index',
 };
