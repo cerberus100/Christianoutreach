@@ -15,9 +15,7 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     try {
       console.log('Frontend: Fetching dashboard data...');
-      
-      // TEMPORARY: Use simple test endpoint that bypasses AWS issues
-      const response = await fetch('/api/test-simple');
+      const response = await fetchWithAuth('/api/admin/dashboard');
       console.log('Frontend: Dashboard response status:', response.status);
 
       const result = await response.json();
@@ -26,7 +24,6 @@ export default function DashboardPage() {
       if (result.success) {
         setStats(result.data);
         console.log('Frontend: Dashboard data set successfully');
-        toast.success('Dashboard loaded with test data');
       } else {
         console.error('Frontend: Dashboard API returned error:', result);
         toast.error(`Failed to load dashboard data: ${result.error || result.message}`);

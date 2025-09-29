@@ -17,7 +17,18 @@ const nextConfig = {
   },
 
   // Environment variables are automatically available in serverless functions
-  // No need to explicitly expose them in next.config.js for Amplify deployment
+  // Explicitly expose environment variables for Amplify SSR
+  env: {
+    JWT_SECRET: process.env.JWT_SECRET,
+    APP_DYNAMODB_TABLE_NAME: process.env.APP_DYNAMODB_TABLE_NAME,
+    APP_DYNAMODB_CHURCHES_TABLE: process.env.APP_DYNAMODB_CHURCHES_TABLE,
+    APP_DYNAMODB_USERS_TABLE: process.env.APP_DYNAMODB_USERS_TABLE,
+    APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE: process.env.APP_DYNAMODB_SUBMISSIONS_GSI_CHURCH_DATE,
+    APP_S3_BUCKET_NAME: process.env.APP_S3_BUCKET_NAME,
+    APP_SNS_ENABLED: process.env.APP_SNS_ENABLED,
+    APP_SNS_SENDER_ID: process.env.APP_SNS_SENDER_ID,
+    APP_AWS_REGION: process.env.APP_AWS_REGION,
+  },
 
   // Experimental features
   experimental: {
