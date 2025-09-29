@@ -21,16 +21,28 @@ export default async function handler(
   if (!user) return; // Response already sent by requireAdmin
 
   try {
-    console.log('Dashboard: Starting data fetch', { table: TABLES.SUBMISSIONS });
+    console.log('Dashboard: Starting data fetch', { 
+      table: TABLES.SUBMISSIONS, 
+      region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
+      nodeEnv: process.env.NODE_ENV 
+    });
 
     // Query all submissions from DynamoDB
     let submissionsResult;
     try {
+      console.log('Dashboard: Attempting DynamoDB scan...');
       submissionsResult = await docClient.send(new ScanCommand({
         TableName: TABLES.SUBMISSIONS,
       }));
+      console.log('Dashboard: DynamoDB scan successful', { itemCount: submissionsResult.Items?.length || 0 });
     } catch (scanError) {
-      console.error('Dashboard: DynamoDB scan failed', { error: scanError, table: TABLES.SUBMISSIONS });
+      console.error('Dashboard: DynamoDB scan failed', { 
+        error: scanError, 
+        table: TABLES.SUBMISSIONS,
+        errorName: scanError instanceof Error ? scanError.name : 'Unknown',
+        errorMessage: scanError instanceof Error ? scanError.message : 'Unknown error',
+        errorStack: scanError instanceof Error ? scanError.stack : 'No stack'
+      });
       throw new Error(`Failed to scan submissions table: ${scanError instanceof Error ? scanError.message : 'Unknown error'}`);
     }
 

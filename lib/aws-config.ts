@@ -6,15 +6,8 @@ import { SNSClient } from '@aws-sdk/client-sns';
 // AWS Configuration
 const awsConfig = {
   region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1',
-  // Use explicit credentials if provided, otherwise use IAM role (production)
-  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
-    ? {
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        },
-      }
-    : {}),
+  // In production (AWS Lambda), always use IAM role credentials
+  // Never use explicit credentials in Amplify environment
 };
 
 // DynamoDB Client
